@@ -4,11 +4,13 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::ace::header::AceHeader;
+use crate::ace::arrays::IzawArray;
 use crate::ace::utils::is_ascii_file;
 
 #[derive(Clone)]
 pub struct AceData {
-    header: AceHeader
+    header: AceHeader,
+    izaw_array: IzawArray
 }
 
 impl AceData {
@@ -34,7 +36,10 @@ impl AceData {
         // Process the header
         let header = AceHeader::from_ascii_file(&mut reader)?;
 
-        Ok(Self { header })
+        // Process the IZAW array
+        let izaw_array = IzawArray::from_ascii_file(&mut reader)?;
+
+        Ok(Self { header, izaw_array })
     }
 
     // Expose AceHeader fields via methods
@@ -54,9 +59,9 @@ impl AceData {
         self.header.temperature
     }
 
-    // pub fn izaw(&self) -> Vec<IzawEntry> {
-    //     self.izaw.entries.clone()
-    // }
+    pub fn izaw(&self) -> IzawArray {
+        self.izaw_array.clone()
+    }
 }
 
 #[cfg(test)]
