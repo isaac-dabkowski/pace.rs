@@ -1,3 +1,5 @@
 mod izaw;
+mod nxs;
 
-pub use izaw::IzawArray;
+pub use izaw::{IzawPair, IzawArray};
+pub use nxs::NxsArray;
