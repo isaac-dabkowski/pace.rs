@@ -62,10 +62,10 @@ mod ascii_tests {
         let izaw_array =  format!("{}{}{}{}", izaw_line, izaw_line, izaw_line, izaw_line);
         let mut reader = utils::create_reader_from_string(&izaw_array);
 
-        // Parse the header
+        // Parse the array
         let izaw = IzawArray::from_ascii_file(&mut reader).expect("Failed to parse IZAW array");
 
-        // Check fields
+        // Check contents
         for za_iz_pair in &izaw.pairs {
             assert_eq!(za_iz_pair.za, 0);
             assert_eq!(za_iz_pair.iz, 0.0);

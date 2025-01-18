@@ -7,7 +7,7 @@ use std::fs::File;
 use std::error::Error;
 use tempfile::tempfile;
 use lazy_static::lazy_static;
-use crate::AceData;
+use crate::AceIsotopeData;
 
 // Checks if a file is ASCII by reading the first 100 kB of the file
 pub fn is_ascii_file<P: AsRef<Path>>(path: P) -> io::Result<bool> {
@@ -50,19 +50,19 @@ pub fn create_reader_from_string(content: &str) -> BufReader<File> {
 }
 
 // The following code parses an example ACE file and saves it the resulting
-// `AceData` is globally accesible for testing.
+// `AceIsotopeData` is globally accesible for testing.
 lazy_static! {
-    pub static ref PARSED_ACE_FILE: Mutex<Option<AceData>> = Mutex::new(None);
+    pub static ref PARSED_ACE_FILE: Mutex<Option<AceIsotopeData>> = Mutex::new(None);
 }
 
 #[allow(dead_code)]
-pub fn get_parsed_ascii_for_testing() -> AceData {
+pub fn get_parsed_ascii_for_testing() -> AceIsotopeData {
     // In effect, this acts as a sloppy integration test as it involves
     // the parsing of an actual ASCII ACE file.
-    let mut data: std::sync::MutexGuard<'_, Option<AceData>> = PARSED_ACE_FILE.lock().unwrap();
+    let mut data: std::sync::MutexGuard<'_, Option<AceIsotopeData>> = PARSED_ACE_FILE.lock().unwrap();
     if data.is_none() {
         let start = std::time::SystemTime::now();
-        let parsed_ace = AceData::from_file("test_files/hydrogen_test_file").unwrap();
+        let parsed_ace = AceIsotopeData::from_file("test_files/hydrogen_test_file").unwrap();
         println!(
             "Time to parse ACE file: {} sec",
             std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()

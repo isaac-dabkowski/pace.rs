@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
@@ -8,6 +10,7 @@ pub struct AceHeader {
     pub zaid: String,
     pub szaid: Option<String>,
     pub atomic_mass_fraction: f64,
+    pub kT: f64,
     pub temperature: f64,
 }
 
@@ -38,9 +41,10 @@ impl AceHeader {
             .collect();
         let zaid = split_legacy_header[0].clone();
         let atomic_mass_fraction: f64 = split_legacy_header[1].parse()?;
-        let temperature = utils::compute_temperature_from_kT(split_legacy_header[2].parse()?);
+        let kT: f64 = split_legacy_header[2].parse()?;
+        let temperature = utils::compute_temperature_from_kT(kT);
 
-        Ok(Self { zaid, szaid, atomic_mass_fraction, temperature })
+        Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })
     }
 }
 
@@ -66,6 +70,7 @@ mod ascii_tests {
         assert_eq!(header.zaid, "6012.00c");
         assert_eq!(header.szaid, Some("6012.800nc".to_string()));
         assert!((header.atomic_mass_fraction - 11.893650).abs() < 1e-6);
+        assert!((header.kT - 2.5301e-08).abs() < 1e-6);
         assert!((header.temperature - utils::compute_temperature_from_kT(2.5301e-08)).abs() < 1e-6);
     }
 
@@ -85,6 +90,7 @@ mod ascii_tests {
         assert_eq!(header.zaid, "26054.00c");
         assert_eq!(header.szaid, None);
         assert!((header.atomic_mass_fraction - 53.476240).abs() < 1e-6);
+        assert!((header.kT - 2.5301e-08).abs() < 1e-6);
         assert!((header.temperature - utils::compute_temperature_from_kT(2.5301e-08)).abs() < 1e-6);
     }
 }

@@ -3,4 +3,4 @@ mod header;
 mod arrays;
 mod utils;
 
-pub use ace_data::AceData;
+pub use ace_data::AceIsotopeData;
