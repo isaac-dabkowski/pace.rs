@@ -9,13 +9,14 @@ use crate::ace::header::AceHeader;
 use crate::ace::arrays::{IzawPair, IzawArray};
 use crate::ace::utils::is_ascii_file;
 
-use super::arrays::NxsArray;
+use super::arrays::{JxsArray, NxsArray};
 
 #[derive(Clone)]
 pub struct AceIsotopeData {
     header: AceHeader,
     izaw_array: IzawArray,
     nxs_array: NxsArray,
+    jxs_array: JxsArray
 }
 
 impl AceIsotopeData {
@@ -47,60 +48,74 @@ impl AceIsotopeData {
         // Process the NXS array
         let nxs_array = NxsArray::from_ascii_file(&mut reader)?;
 
-        Ok(Self { header, izaw_array, nxs_array })
+        // Process the JXS array
+        let jxs_array = JxsArray::from_ascii_file(&mut reader)?;
+
+        Ok(Self { header, izaw_array, nxs_array, jxs_array })
     }
 
     // ZAID of the isotope
+    #[inline]
     pub fn zaid(&self) -> String {
         self.header.zaid.clone()
     }
 
     // SZAID of the isotope (version 2.0.0 and later)
+    #[inline]
     pub fn szaid(&self) -> Option<String> {
         self.header.szaid.clone()
     }
 
     // Atomic mass fraction
+    #[inline]
     pub fn atomic_mass_fraction(&self) -> f64 {
         self.header.atomic_mass_fraction
     }
 
     // kT
+    #[inline]
     pub fn kT(&self) -> f64 {
         self.header.kT
     }
 
     // Temperature in Kelvin
+    #[inline]
     pub fn temperature(&self) -> f64 {
         self.header.temperature
     }
 
     // S alpha beta pairs of ZAIDs and atomic weight ratios
+    #[inline]
     pub fn s_a_b_pairs(&self) -> Vec<IzawPair> {
         self.izaw_array.pairs.clone()
     }
 
     // Number of entries in the main data array
+    #[inline]
     pub fn num_entries(&self) -> usize {
         self.nxs_array.xxs_len
     }
 
     // Number of energies
+    #[inline]
     pub fn num_energies(&self) -> usize {
         self.nxs_array.nes
     }
 
     // ZA of the isotope
+    #[inline]
     pub fn za(&self) -> usize {
         self.nxs_array.za
     }
 
     // Atomic number
+    #[inline]
     pub fn z(&self) -> usize {
         self.nxs_array.z
     }
 
     // Mass number
+    #[inline]
     pub fn a(&self) -> usize {
         self.nxs_array.a
     }
