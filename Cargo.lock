@@ -794,6 +794,7 @@ dependencies = [
  "polars",
  "rayon",
  "tempfile",
+ "thiserror",
 ]
 
 [[package]]

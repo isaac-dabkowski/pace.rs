@@ -3,10 +3,11 @@ use std::fs::File;
 use std::io::BufReader;
 use crate::ace::utils;
 
+// Pair of values used in S alpha beta calculations
 #[derive(Debug, Clone, PartialEq)]
 pub struct IzawPair {
-    pub za: usize,
-    pub iz: f64, // Atomic weight ratio
+    pub za: usize,  // ZA of isotope
+    pub iz: f64,    // Atomic weight ratio
 }
 
 impl IzawPair {

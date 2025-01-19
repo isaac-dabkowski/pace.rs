@@ -3,6 +3,23 @@ use std::fs::File;
 use std::io::BufReader;
 use crate::ace::utils;
 
+// Indices for different values within NXS array.
+// See page 10 of the ACE format spec for a description.
+#[derive(Debug)]
+enum NxsIndex {
+    XxsLen = 0,
+    Za = 1,
+    Nes = 2,
+    Ntr = 3,
+    Nr = 4,
+    Ntrp = 5,
+    Ntype = 6,
+    Npcr = 7,
+    S = 8,
+    Z = 9,
+    A = 10,
+}
+
 // Represents the NXS array from an ACE file. See page 10 of the ACE format spec for a description.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NxsArray {
@@ -36,17 +53,17 @@ impl NxsArray {
             .collect();
 
         Ok(Self {
-            xxs_len: nxs_array[0],
-            za: nxs_array[1],
-            nes: nxs_array[2],
-            ntr: nxs_array[3],
-            nr: nxs_array[4],
-            ntrp: nxs_array[5],
-            ntype: nxs_array[6],
-            npcr: nxs_array[7],
-            s: nxs_array[8],
-            z: nxs_array[9],
-            a: nxs_array[10],
+            xxs_len: nxs_array[NxsIndex::XxsLen as usize],
+            za: nxs_array[NxsIndex::Za as usize],
+            nes: nxs_array[NxsIndex::Nes as usize],
+            ntr: nxs_array[NxsIndex::Ntr as usize],
+            nr: nxs_array[NxsIndex::Nr as usize],
+            ntrp: nxs_array[NxsIndex::Ntrp as usize],
+            ntype: nxs_array[NxsIndex::Ntype as usize],
+            npcr: nxs_array[NxsIndex::Npcr as usize],
+            s: nxs_array[NxsIndex::S as usize],
+            z: nxs_array[NxsIndex::Z as usize],
+            a: nxs_array[NxsIndex::A as usize],
         })
     }
 }

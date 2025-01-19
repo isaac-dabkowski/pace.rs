@@ -23,8 +23,8 @@ pub fn is_ascii_file<P: AsRef<Path>>(path: P) -> io::Result<bool> {
     }
 }
 
-#[inline]
 // Read a specified number of lines into a vector of strings
+#[inline]
 pub fn read_lines(reader: &mut BufReader<File>, num_lines: usize) -> Result<Vec<String>, Box<dyn Error>> {
     reader.lines()
         .take(num_lines)
@@ -34,8 +34,8 @@ pub fn read_lines(reader: &mut BufReader<File>, num_lines: usize) -> Result<Vec<
         )
 }
 
-#[inline]
 // Provided a temperature in MeV, convert to K
+#[inline]
 pub fn compute_temperature_from_kT(kT: f64) -> f64 {
     kT * 1e6 / 8.617333262e-5
 }
