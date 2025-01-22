@@ -1,5 +1,3 @@
-#![allow(non_snake_case, clippy::upper_case_acronyms)]
-
 use std::convert::From;
 use std::error::Error;
 use std::fs::File;
@@ -7,12 +5,14 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
-use crate::ace::utils;
-use crate::ace::arrays::{JxsEntry, JxsArray};
+use crate::ace::data_blocks;
+use crate::ace::arrays::{JxsEntry, JxsArray, NxsArray};
+
+type BlockTextMap = HashMap<DataBlockType, Option<Vec<String>>>;
 
 // Enum of all block types in continuous neutron ACE file
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum BlockType {
+pub enum DataBlockType {
     ESZ,    // Energy table
     NU,     // Fission nu data
     MTR,    // MT array
@@ -62,30 +62,41 @@ impl From<&JxsEntry> for BlockBounds {
 }
 
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Blocks {
-    map: HashMap<BlockType, Option<Vec<String>>>
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct DataBlocks {
+    pub ESZ: Option<data_blocks::ESZ>
 }
 
-impl Blocks {
-    pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
-
+impl DataBlocks {
     // Create a new BlockProcessor from a XXS array, the NXS and JXS array are used to
     // determine the start and end locations of each block
-    pub fn from_ascii_file(reader: &mut BufReader<File>, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
-        let mut block_map = Blocks::new();
+    pub fn from_ascii_file(reader: &mut BufReader<File>, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
+        // Split XXS array into raw text correspoding to each block 
+        let block_map = DataBlocks::split_xxs_into_blocks(reader, jxs_array)?;
+
+        // TODO: Use the AsyncTaskDag to set up our block workflows here
+        // Builder struct assists in initialization
+        let mut builder = DataBlocksBuilder::new();
+        for (block_type, block_text) in block_map {
+            if let Some(text) = block_text {
+                builder.process_block(block_type, text, nxs_array);
+            }
+        }
+        let data_blocks = builder.build();
+        Ok(data_blocks)
+    }
+
+    // Splits the XXS array into blocks of text corresponding to each block type
+    fn split_xxs_into_blocks(reader: &mut BufReader<File>, jxs_array: &JxsArray) -> Result<BlockTextMap, Box<dyn Error>> {
+        let mut block_map = HashMap::new();
         // Loop over the JXS array and create a BlockBounds for each block which exists
         for (block_type, jxs_entry) in jxs_array.iter().filter_map(|(key, value)| {
             value.as_ref().map(|v| (key, v))
         }) {
             let block_bounds = BlockBounds::from(jxs_entry);
-            let block_text = Blocks::get_block_from_xxs(reader, block_bounds)
+            let block_text = DataBlocks::get_block_from_xxs(reader, block_bounds)
                 .unwrap_or_else(|_| panic!("Error processing block: {:?}", block_type));
-            block_map.map.insert(block_type.clone(), Some(block_text));
+            block_map.insert(block_type.clone(), Some(block_text));
         }
         Ok(block_map)
     }
@@ -100,7 +111,7 @@ impl Blocks {
         let start_offset = (block_bounds.start - 1) % 4;
         let block_length = block_bounds.end - block_bounds.start;
         // Get the lines from the XXS array
-        let block_lines = Blocks::get_lines_from_xxs(reader, start_line, end_line)?;
+        let block_lines = DataBlocks::get_lines_from_xxs(reader, start_line, end_line)?;
         // Split on whitespace
         let block_text: Vec<String> = block_lines.iter()
             .flat_map(|s| s.split_whitespace())
@@ -134,16 +145,16 @@ impl Blocks {
     }
 
 
-    // fn process_block(&self, field: BlockType) -> Option<ProcessResult> {
+    // fn process_block(&self, field: DataBlockType) -> Option<ProcessResult> {
     //     match field {
-    //         BlockType::ESZ => self.ESZ.as_ref().map(|entry| process_ESZ(entry)),
-    //         BlockType::NU => self.nu.as_ref().map(|entry| process_NU(entry)),
+    //         DataBlockType::ESZ => self.ESZ.as_ref().map(|entry| process_ESZ(entry)),
+    //         DataBlockType::NU => self.nu.as_ref().map(|entry| process_NU(entry)),
     //         _ => None, // Unimplemented fields return None
     //     }
     // }
 
-    // pub fn process_all_blocks(&self) -> Vec<(BlockType, ProcessResult)> {
-    //     use BlockType::*;
+    // pub fn process_all_blocks(&self) -> Vec<(DataBlockType, ProcessResult)> {
+    //     use DataBlockType::*;
     //     let blocks = [
     //         ESZ, NU, MTR, LQR, TYR, LSIG, SIG, AND, LDLW, DLW, GPD,
     //         MTRP, LSIGP, SIGP, LANDP, ANDP, LDLWP, DLWP, YP, FIS,
@@ -159,36 +170,71 @@ impl Blocks {
     // }
 }
 
-impl Deref for Blocks {
-    type Target = HashMap<BlockType, Option<Vec<String>>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.map
-    }
+pub trait BlockConstructor {
+    fn construct(text_data: Vec<String>, nxs_array: &NxsArray) -> Self;
 }
 
-// // Example processing functions
-// fn process_ESZ(entry: &BlockType) -> ProcessResult {
-//     // Implementation for ESZ processing
-//     todo!()
-// }
+struct DataBlocksBuilder {
+    inner: DataBlocks
+}
 
-// fn process_NU(entry: &BlockType) -> ProcessResult {
-//     // Implementation for NU processing
-//     todo!()
-// }
+impl DataBlocksBuilder {
+    fn new() -> Self {
+        Self {
+            inner: DataBlocks::default()
+        }
+    }
 
-// // Type for process result (replace with your actual result type)
-// type ProcessResult = ();
+    fn process_block(&mut self, block_type: DataBlockType, block_text: Vec<String>, nxs_array: &NxsArray) {
+        match block_type {
+            DataBlockType::ESZ => self.inner.ESZ = Some(data_blocks::ESZ::construct(block_text, nxs_array)),
+            // DataBlockType::NU => self.inner.NU = Some(NU::construct(block_text)),
+            // DataBlockType::MTR => self.inner.MTR = Some(MTR::construct(block_text)),
+            // DataBlockType::LQR => self.inner.LQR = Some(LQR::construct(block_text)),
+            // DataBlockType::TYR => self.inner.TYR = Some(TYR::construct(block_text)),
+            // DataBlockType::LSIG => self.inner.LSIG = Some(LSIG::construct(block_text)),
+            // DataBlockType::SIG => self.inner.SIG = Some(SIG::construct(block_text)),
+            // DataBlockType::LAND => self.inner.LAND = Some(LAND::construct(block_text)),
+            // DataBlockType::AND => self.inner.AND = Some(AND::construct(block_text)),
+            // DataBlockType::LDLW => self.inner.LDLW = Some(LDLW::construct(block_text)),
+            // DataBlockType::DLW => self.inner.DLW = Some(DLW::construct(block_text)),
+            // DataBlockType::GPD => self.inner.GPD = Some(GPD::construct(block_text)),
+            // DataBlockType::MTRP => self.inner.MTRP = Some(MTRP::construct(block_text)),
+            // DataBlockType::LSIGP => self.inner.LSIGP = Some(LSIGP::construct(block_text)),
+            // DataBlockType::SIGP => self.inner.SIGP = Some(SIGP::construct(block_text)),
+            // DataBlockType::LANDP => self.inner.LANDP = Some(LANDP::construct(block_text)),
+            // DataBlockType::ANDP => self.inner.ANDP = Some(ANDP::construct(block_text)),
+            // DataBlockType::LDLWP => self.inner.LDLWP = Some(LDLWP::construct(block_text)),
+            // DataBlockType::DLWP => self.inner.DLWP = Some(DLWP::construct(block_text)),
+            // DataBlockType::YP => self.inner.YP = Some(YP::construct(block_text)),
+            // DataBlockType::FIS => self.inner.FIS = Some(FIS::construct(block_text)),
+            // DataBlockType::END => self.inner.END = Some(END::construct(block_text)),
+            // DataBlockType::LUND => self.inner.LUND = Some(LUND::construct(block_text)),
+            // DataBlockType::DNU => self.inner.DNU = Some(DNU::construct(block_text)),
+            // DataBlockType::BDD => self.inner.BDD = Some(BDD::construct(block_text)),
+            // DataBlockType::DNEDL => self.inner.DNEDL = Some(DNEDL::construct(block_text)),
+            // DataBlockType::DNED => self.inner.DNED = Some(DNED::construct(block_text)),
+            // DataBlockType::PTYPE => self.inner.PTYPE = Some(PTYPE::construct(block_text)),
+            // DataBlockType::NTRO => self.inner.NTRO = Some(NTRO::construct(block_text)),
+            // DataBlockType::NEXT => self.inner.NEXT = Some(NEXT::construct(block_text)),
+            _ => log::debug!("Field {:?} not yet implemented", block_type)
+        };
+    }
+    
+    fn build(self) -> DataBlocks {
+        self.inner
+    }
+}
 
 #[cfg(test)]
 mod ascii_tests {
     use super::*;
+    use crate::ace::utils;
 
     fn create_test_jxs_array() -> JxsArray {
         let mut jxs_array = JxsArray::new();
-        jxs_array.block_bounds.insert(BlockType::ESZ, Some(JxsEntry { loc: 1, len: 4 }));
-        jxs_array.block_bounds.insert(BlockType::NU, Some(JxsEntry { loc: 5, len: 4 }));
+        jxs_array.block_bounds.insert(DataBlockType::ESZ, Some(JxsEntry { loc: 1, len: 4 }));
+        jxs_array.block_bounds.insert(DataBlockType::NU, Some(JxsEntry { loc: 5, len: 4 }));
         jxs_array
     }
 
@@ -211,32 +257,26 @@ mod ascii_tests {
     }
 
     #[test]
-    fn test_blocks_new() {
-        let blocks = Blocks::new();
-        assert!(blocks.map.is_empty());
-    }
-
-    #[test]
     fn test_blocks_from_ascii_file() {
         let jxs_array = create_test_jxs_array();
         let mut reader = create_example_xxs();
-        let blocks = Blocks::from_ascii_file(&mut reader, &jxs_array).unwrap();
-        assert!(blocks.map.contains_key(&BlockType::ESZ));
-        assert!(blocks.map.contains_key(&BlockType::NU));
+        let block_map = DataBlocks::split_xxs_into_blocks(&mut reader, &jxs_array).unwrap();
+        assert!(block_map.contains_key(&DataBlockType::ESZ));
+        assert!(block_map.contains_key(&DataBlockType::NU));
     }
 
     #[test]
     fn test_get_block_from_xxs() {
         let mut reader = create_example_xxs();
         let block_bounds = BlockBounds { start: 2, end: 4 };
-        let block_text = Blocks::get_block_from_xxs(&mut reader, block_bounds).unwrap();
+        let block_text = DataBlocks::get_block_from_xxs(&mut reader, block_bounds).unwrap();
         assert_eq!(block_text, vec!["2.00000000000E+00".to_string(), "3.00000000000E+00".to_string()]);
     }
 
     #[test]
     fn test_get_lines_from_xxs() {
         let mut reader = create_example_xxs();
-        let lines = Blocks::get_lines_from_xxs(&mut reader, 1, 2).unwrap();
+        let lines = DataBlocks::get_lines_from_xxs(&mut reader, 1, 2).unwrap();
         assert_eq!(
             lines,
             vec![

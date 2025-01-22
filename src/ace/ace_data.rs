@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use std::path::Path;
 use std::error::Error;
 use std::fs::File;
@@ -7,18 +5,18 @@ use std::io::BufReader;
 
 use crate::ace::header::AceHeader;
 use crate::ace::arrays::{IzawPair, IzawArray, JxsArray, NxsArray};
-use crate::ace::blocks::Blocks;
+use crate::ace::data_blocks::DataBlocks;
 use crate::ace::utils::is_ascii_file;
 
-use super::blocks;
+use super::data_blocks;
 
 #[derive(Clone)]
 pub struct AceIsotopeData {
-    header: AceHeader,
-    izaw_array: IzawArray,
-    nxs_array: NxsArray,
-    jxs_array: JxsArray,
-    blocks: Blocks
+    pub header: AceHeader,
+    pub izaw_array: IzawArray,
+    pub nxs_array: NxsArray,
+    pub jxs_array: JxsArray,
+    pub data_blocks: DataBlocks
 }
 
 impl AceIsotopeData {
@@ -54,9 +52,9 @@ impl AceIsotopeData {
         let jxs_array = JxsArray::from_ascii_file(&mut reader, &nxs_array)?;
 
         // Process the XXS array into each block's raw text
-        let blocks = Blocks::from_ascii_file(&mut reader, &jxs_array)?;
+        let data_blocks = DataBlocks::from_ascii_file(&mut reader, &nxs_array, &jxs_array)?;
 
-        Ok(Self { header, izaw_array, nxs_array, jxs_array, blocks })
+        Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks })
     }
 
     // ZAID of the isotope
@@ -123,6 +121,12 @@ impl AceIsotopeData {
     #[inline]
     pub fn a(&self) -> usize {
         self.nxs_array.a
+    }
+
+    // Energy grid from ESZ block
+    #[inline]
+    pub fn energies(&self) -> Vec<f64> {
+        self.data_blocks.ESZ.as_ref().unwrap().energy.clone()
     }
 }
 
@@ -198,6 +202,12 @@ mod ascii_tests {
     fn test_a_parsing() {
         let parsed_ace = get_parsed_ascii_for_testing();
         assert_eq!(parsed_ace.a(), 1);
+    }
+
+    #[test]
+    fn test_esz_energies_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing();
+        assert_eq!(parsed_ace.energies().len(), parsed_ace.num_energies());
     }
 }
 

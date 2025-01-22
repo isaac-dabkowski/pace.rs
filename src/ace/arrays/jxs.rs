@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 use crate::ace::utils;
 use crate::ace::arrays::NxsArray;
+use crate::ace::data_blocks::DataBlockType;
 
 // Represents an entry within the JXS array containing location and length of a data block
 #[derive(Debug, Clone, PartialEq)]
@@ -31,49 +32,49 @@ impl JxsEntry {
     }
 }
 
-impl BlockType {
+impl DataBlockType {
     fn from_jxs_index(value: usize) -> Option<Self> {
         match value {
-            0 => Some(BlockType::ESZ),
-            1 => Some(BlockType::NU),
-            2 => Some(BlockType::MTR),
-            3 => Some(BlockType::LQR),
-            4 => Some(BlockType::TYR),
-            5 => Some(BlockType::LSIG),
-            6 => Some(BlockType::SIG),
-            7 => Some(BlockType::LAND),
-            8 => Some(BlockType::AND),
-            9 => Some(BlockType::LDLW),
-            10 => Some(BlockType::DLW),
-            11 => Some(BlockType::GPD),
-            12 => Some(BlockType::MTRP),
-            13 => Some(BlockType::LSIGP),
-            14 => Some(BlockType::SIGP),
-            15 => Some(BlockType::LANDP),
-            16 => Some(BlockType::ANDP),
-            17 => Some(BlockType::LDLWP),
-            18 => Some(BlockType::DLWP),
-            19 => Some(BlockType::YP),
-            20 => Some(BlockType::FIS),
-            21 => Some(BlockType::END),
-            22 => Some(BlockType::LUND),
-            23 => Some(BlockType::DNU),
-            24 => Some(BlockType::BDD),
-            25 => Some(BlockType::DNEDL),
-            26 => Some(BlockType::DNED),
-            29 => Some(BlockType::PTYPE),
-            30 => Some(BlockType::NTRO),
-            31 => Some(BlockType::NEXT),
+            0 => Some(DataBlockType::ESZ),
+            1 => Some(DataBlockType::NU),
+            2 => Some(DataBlockType::MTR),
+            3 => Some(DataBlockType::LQR),
+            4 => Some(DataBlockType::TYR),
+            5 => Some(DataBlockType::LSIG),
+            6 => Some(DataBlockType::SIG),
+            7 => Some(DataBlockType::LAND),
+            8 => Some(DataBlockType::AND),
+            9 => Some(DataBlockType::LDLW),
+            10 => Some(DataBlockType::DLW),
+            11 => Some(DataBlockType::GPD),
+            12 => Some(DataBlockType::MTRP),
+            13 => Some(DataBlockType::LSIGP),
+            14 => Some(DataBlockType::SIGP),
+            15 => Some(DataBlockType::LANDP),
+            16 => Some(DataBlockType::ANDP),
+            17 => Some(DataBlockType::LDLWP),
+            18 => Some(DataBlockType::DLWP),
+            19 => Some(DataBlockType::YP),
+            20 => Some(DataBlockType::FIS),
+            21 => Some(DataBlockType::END),
+            22 => Some(DataBlockType::LUND),
+            23 => Some(DataBlockType::DNU),
+            24 => Some(DataBlockType::BDD),
+            25 => Some(DataBlockType::DNEDL),
+            26 => Some(DataBlockType::DNED),
+            29 => Some(DataBlockType::PTYPE),
+            30 => Some(DataBlockType::NTRO),
+            31 => Some(DataBlockType::NEXT),
             _ => None, // Return None for invalid integers
         }
     }
 }
 
-use crate::ace::blocks::BlockType;
+
 // Represents the complete JXS array from an ACE file
 #[derive(Clone, Debug, Default)]
 pub struct JxsArray {
-    pub block_bounds: HashMap<BlockType, Option<JxsEntry>>
+    pub block_bounds: HashMap<DataBlockType, Option<JxsEntry>>
 }
 
 impl JxsArray {
@@ -98,7 +99,7 @@ impl JxsArray {
         // Fill in our array
         for i in 0..32 {
             // Skip any indices we do not have support for currently
-            if let Some(block_type) = BlockType::from_jxs_index(i) {
+            if let Some(block_type) = DataBlockType::from_jxs_index(i) {
                 let loc = parsed_jxs_array[i];
                 match loc == 0 {
                     // Block does not exist
@@ -127,7 +128,7 @@ impl JxsArray {
 }
 
 impl Deref for JxsArray {
-    type Target = HashMap<BlockType, Option<JxsEntry>>;
+    type Target = HashMap<DataBlockType, Option<JxsEntry>>;
 
     fn deref(&self) -> &Self::Target {
         &self.block_bounds
@@ -181,35 +182,35 @@ mod tests {
         let jxs = JxsArray::from_ascii_file(&mut reader, &nxs).expect("Failed to parse JXS array");
 
         // Check fields
-        assert_eq!(jxs.get(&BlockType::ESZ).unwrap(), &Some(JxsEntry::new(1, 2)));
-        assert_eq!(jxs.get(&BlockType::NU).unwrap(), &None);
-        assert_eq!(jxs.get(&BlockType::MTR).unwrap(), &Some(JxsEntry::new(3, 1)));
-        assert_eq!(jxs.get(&BlockType::LQR).unwrap(), &Some(JxsEntry::new(4, 1)));
-        assert_eq!(jxs.get(&BlockType::TYR).unwrap(), &Some(JxsEntry::new(5, 1)));
-        assert_eq!(jxs.get(&BlockType::LSIG).unwrap(), &Some(JxsEntry::new(6, 1)));
-        assert_eq!(jxs.get(&BlockType::SIG).unwrap(), &Some(JxsEntry::new(7, 1)));
-        assert_eq!(jxs.get(&BlockType::LAND).unwrap(), &Some(JxsEntry::new(8, 1)));
-        assert_eq!(jxs.get(&BlockType::AND).unwrap(), &Some(JxsEntry::new(9, 1)));
-        assert_eq!(jxs.get(&BlockType::LDLW).unwrap(), &Some(JxsEntry::new(10, 4)));
-        assert_eq!(jxs.get(&BlockType::DLW).unwrap(), &None);
-        assert_eq!(jxs.get(&BlockType::GPD).unwrap(), &None);
-        assert_eq!(jxs.get(&BlockType::MTRP).unwrap(), &None);
-        assert_eq!(jxs.get(&BlockType::LSIGP).unwrap(), &Some(JxsEntry::new(14, 1)));
-        assert_eq!(jxs.get(&BlockType::SIGP).unwrap(), &Some(JxsEntry::new(15, 1)));
-        assert_eq!(jxs.get(&BlockType::LANDP).unwrap(), &Some(JxsEntry::new(16, 1)));
-        assert_eq!(jxs.get(&BlockType::ANDP).unwrap(), &Some(JxsEntry::new(17, 1)));
-        assert_eq!(jxs.get(&BlockType::LDLWP).unwrap(), &Some(JxsEntry::new(18, 1)));
-        assert_eq!(jxs.get(&BlockType::DLWP).unwrap(), &Some(JxsEntry::new(19, 1)));
-        assert_eq!(jxs.get(&BlockType::YP).unwrap(), &Some(JxsEntry::new(20, 1)));
-        assert_eq!(jxs.get(&BlockType::FIS).unwrap(), &Some(JxsEntry::new(21, 1)));
-        assert_eq!(jxs.get(&BlockType::END).unwrap(), &Some(JxsEntry::new(22, 1)));
-        assert_eq!(jxs.get(&BlockType::LUND).unwrap(), &Some(JxsEntry::new(23, 1)));
-        assert_eq!(jxs.get(&BlockType::DNU).unwrap(), &Some(JxsEntry::new(24, 1)));
-        assert_eq!(jxs.get(&BlockType::BDD).unwrap(), &Some(JxsEntry::new(25, 1)));
-        assert_eq!(jxs.get(&BlockType::DNEDL).unwrap(), &Some(JxsEntry::new(26, 1)));
-        assert_eq!(jxs.get(&BlockType::DNED).unwrap(), &Some(JxsEntry::new(27, 1)));
-        assert_eq!(jxs.get(&BlockType::PTYPE).unwrap(), &Some(JxsEntry::new(30, 1)));
-        assert_eq!(jxs.get(&BlockType::NTRO).unwrap(), &Some(JxsEntry::new(31, 1)));
-        assert_eq!(jxs.get(&BlockType::NEXT).unwrap(), &Some(JxsEntry::new(32, 68)));
+        assert_eq!(jxs.get(&DataBlockType::ESZ).unwrap(), &Some(JxsEntry::new(1, 2)));
+        assert_eq!(jxs.get(&DataBlockType::NU).unwrap(), &None);
+        assert_eq!(jxs.get(&DataBlockType::MTR).unwrap(), &Some(JxsEntry::new(3, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LQR).unwrap(), &Some(JxsEntry::new(4, 1)));
+        assert_eq!(jxs.get(&DataBlockType::TYR).unwrap(), &Some(JxsEntry::new(5, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LSIG).unwrap(), &Some(JxsEntry::new(6, 1)));
+        assert_eq!(jxs.get(&DataBlockType::SIG).unwrap(), &Some(JxsEntry::new(7, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LAND).unwrap(), &Some(JxsEntry::new(8, 1)));
+        assert_eq!(jxs.get(&DataBlockType::AND).unwrap(), &Some(JxsEntry::new(9, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LDLW).unwrap(), &Some(JxsEntry::new(10, 4)));
+        assert_eq!(jxs.get(&DataBlockType::DLW).unwrap(), &None);
+        assert_eq!(jxs.get(&DataBlockType::GPD).unwrap(), &None);
+        assert_eq!(jxs.get(&DataBlockType::MTRP).unwrap(), &None);
+        assert_eq!(jxs.get(&DataBlockType::LSIGP).unwrap(), &Some(JxsEntry::new(14, 1)));
+        assert_eq!(jxs.get(&DataBlockType::SIGP).unwrap(), &Some(JxsEntry::new(15, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LANDP).unwrap(), &Some(JxsEntry::new(16, 1)));
+        assert_eq!(jxs.get(&DataBlockType::ANDP).unwrap(), &Some(JxsEntry::new(17, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LDLWP).unwrap(), &Some(JxsEntry::new(18, 1)));
+        assert_eq!(jxs.get(&DataBlockType::DLWP).unwrap(), &Some(JxsEntry::new(19, 1)));
+        assert_eq!(jxs.get(&DataBlockType::YP).unwrap(), &Some(JxsEntry::new(20, 1)));
+        assert_eq!(jxs.get(&DataBlockType::FIS).unwrap(), &Some(JxsEntry::new(21, 1)));
+        assert_eq!(jxs.get(&DataBlockType::END).unwrap(), &Some(JxsEntry::new(22, 1)));
+        assert_eq!(jxs.get(&DataBlockType::LUND).unwrap(), &Some(JxsEntry::new(23, 1)));
+        assert_eq!(jxs.get(&DataBlockType::DNU).unwrap(), &Some(JxsEntry::new(24, 1)));
+        assert_eq!(jxs.get(&DataBlockType::BDD).unwrap(), &Some(JxsEntry::new(25, 1)));
+        assert_eq!(jxs.get(&DataBlockType::DNEDL).unwrap(), &Some(JxsEntry::new(26, 1)));
+        assert_eq!(jxs.get(&DataBlockType::DNED).unwrap(), &Some(JxsEntry::new(27, 1)));
+        assert_eq!(jxs.get(&DataBlockType::PTYPE).unwrap(), &Some(JxsEntry::new(30, 1)));
+        assert_eq!(jxs.get(&DataBlockType::NTRO).unwrap(), &Some(JxsEntry::new(31, 1)));
+        assert_eq!(jxs.get(&DataBlockType::NEXT).unwrap(), &Some(JxsEntry::new(32, 68)));
     }
 }
