@@ -1,4 +1,4 @@
-use crate::ace::data_blocks::block_processor::BlockConstructor;
+use crate::ace::data_blocks::block_processor::BlockConstruction;
 
 // Represents the ESZ data block
 #[derive(Debug, Clone, PartialEq)]
@@ -10,8 +10,8 @@ pub struct ESZ {
     pub average_heating_numbers: Vec<f64>,
 }
 
-impl BlockConstructor for ESZ {
-    // See page 12 of the ACE format spec for a description of teh ESZ block
+impl BlockConstruction for ESZ {
+    // See page 12 of the ACE format spec for a description of the ESZ block
     fn construct(text_data: Vec<String>, nxs_array: &crate::ace::arrays::NxsArray) -> Self {
         let num_energy_points = nxs_array.nes;
         // Energy grid

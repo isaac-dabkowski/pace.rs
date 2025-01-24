@@ -45,6 +45,12 @@ pub enum DataBlockType {
     NEXT,   // Table of particle production locators
 }
 
+impl std::fmt::Display for DataBlockType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 // Holds the start and end location of a block in the XXS array
 #[derive(Clone, Debug, PartialEq)]
 struct BlockBounds {
@@ -143,34 +149,9 @@ impl DataBlocks {
         reader.seek(SeekFrom::Start(xxs_start_location))?;
         Ok(lines)
     }
-
-
-    // fn process_block(&self, field: DataBlockType) -> Option<ProcessResult> {
-    //     match field {
-    //         DataBlockType::ESZ => self.ESZ.as_ref().map(|entry| process_ESZ(entry)),
-    //         DataBlockType::NU => self.nu.as_ref().map(|entry| process_NU(entry)),
-    //         _ => None, // Unimplemented fields return None
-    //     }
-    // }
-
-    // pub fn process_all_blocks(&self) -> Vec<(DataBlockType, ProcessResult)> {
-    //     use DataBlockType::*;
-    //     let blocks = [
-    //         ESZ, NU, MTR, LQR, TYR, LSIG, SIG, AND, LDLW, DLW, GPD,
-    //         MTRP, LSIGP, SIGP, LANDP, ANDP, LDLWP, DLWP, YP, FIS,
-    //         END, LUND, DNU, BDD, DNEDL, DNED, PTYPE, NTRO, NEXT,
-    //     ];
-
-    //     blocks.iter()
-    //         .filter_map(|&field| {
-    //             self.process_block(field)
-    //                 .map(|result| (field, result))
-    //         })
-    //         .collect()
-    // }
 }
 
-pub trait BlockConstructor {
+pub trait BlockConstruction {
     fn construct(text_data: Vec<String>, nxs_array: &NxsArray) -> Self;
 }
 
