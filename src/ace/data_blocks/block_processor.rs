@@ -213,9 +213,9 @@ mod ascii_tests {
     use crate::ace::utils;
 
     fn create_test_jxs_array() -> JxsArray {
-        let mut jxs_array = JxsArray::new();
-        jxs_array.block_bounds.insert(DataBlockType::ESZ, Some(JxsEntry { loc: 1, len: 4 }));
-        jxs_array.block_bounds.insert(DataBlockType::NU, Some(JxsEntry { loc: 5, len: 4 }));
+        let mut jxs_array = JxsArray::default();
+        jxs_array.insert(DataBlockType::ESZ, Some(JxsEntry { loc: 1, len: 4 }));
+        jxs_array.insert(DataBlockType::NU, Some(JxsEntry { loc: 5, len: 4 }));
         jxs_array
     }
 
