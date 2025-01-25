@@ -6,17 +6,19 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::ace::header::AceHeader;
-use crate::ace::arrays::{IzawPair, IzawArray};
+use crate::ace::arrays::{IzawPair, IzawArray, JxsArray, NxsArray};
+use crate::ace::blocks::Blocks;
 use crate::ace::utils::is_ascii_file;
 
-use super::arrays::{JxsArray, NxsArray};
+use super::blocks;
 
 #[derive(Clone)]
 pub struct AceIsotopeData {
     header: AceHeader,
     izaw_array: IzawArray,
     nxs_array: NxsArray,
-    jxs_array: JxsArray
+    jxs_array: JxsArray,
+    blocks: Blocks
 }
 
 impl AceIsotopeData {
@@ -51,7 +53,10 @@ impl AceIsotopeData {
         // Process the JXS array
         let jxs_array = JxsArray::from_ascii_file(&mut reader, &nxs_array)?;
 
-        Ok(Self { header, izaw_array, nxs_array, jxs_array })
+        // Process the XXS array into each block's raw text
+        let blocks = Blocks::from_ascii_file(&mut reader, &jxs_array)?;
+
+        Ok(Self { header, izaw_array, nxs_array, jxs_array, blocks })
     }
 
     // ZAID of the isotope

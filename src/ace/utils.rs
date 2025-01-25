@@ -64,7 +64,7 @@ pub fn get_parsed_ascii_for_testing() -> AceIsotopeData {
         let start = std::time::SystemTime::now();
         let parsed_ace = AceIsotopeData::from_file("test_files/hydrogen_test_file").unwrap();
         println!(
-            "Time to parse ACE file: {} sec",
+            "⚛️  TESTING ⚛️  - Time to parse ACE file: {} sec",
             std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()
         );
         *data = Some(parsed_ace);
