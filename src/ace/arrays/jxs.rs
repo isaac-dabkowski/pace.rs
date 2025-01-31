@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::error::Error;
@@ -34,7 +32,7 @@ impl DerefMut for JxsArray {
 
 impl JxsArray {
     pub fn get(&self, key: &DataBlockType) -> usize {
-        *self.block_starting_indices.get(key).expect(&format!("Could not find {} in JXS array", key))
+        *self.block_starting_indices.get(key).unwrap_or_else(|| panic!("Could not find {} in JXS array", key))
     }
 }
 

@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use std::sync::Mutex;
 use std::io::{self, Read, Write, Seek, BufReader, BufRead};
 use std::path::Path;
