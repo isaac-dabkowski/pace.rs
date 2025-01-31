@@ -793,6 +793,8 @@ dependencies = [
  "lazy_static",
  "polars",
  "rayon",
+ "strum",
+ "strum_macros",
  "tempfile",
 ]
 
