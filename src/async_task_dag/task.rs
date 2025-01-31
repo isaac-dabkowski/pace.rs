@@ -36,7 +36,7 @@ pub struct Task<K, T> {
 impl<K: DagKey, T: DagValue> Task<K, T> {
     pub fn new<F, Fut>(key: K, f: F) -> Self
     where
-        F: Fn(TaskResults<K, T>) -> Fut + Send + Sync + Clone + 'static,
+        F: FnOnce(TaskResults<K, T>) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = Result<T, String>> + Send + 'static
     {
         Task {

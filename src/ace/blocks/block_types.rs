@@ -1,5 +1,9 @@
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use crate::async_task_dag::DagValue;
+use crate::ace::blocks::ESZ;
+
+// Marker trait that something is a data block
+pub trait IsDataBlock {}
 
 // Enum of all block types in continuous neutron ACE file
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
@@ -40,6 +44,12 @@ impl std::fmt::Display for DataBlockType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
+}
+
+// Enum for holding concrete processed blocks
+#[derive(Debug, Clone)]
+pub enum DataBlock {
+    ESZ(ESZ)
 }
 
 #[cfg(test)]

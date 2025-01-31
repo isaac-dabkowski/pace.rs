@@ -54,15 +54,15 @@ lazy_static! {
 }
 
 #[allow(dead_code)]
-pub fn get_parsed_ascii_for_testing() -> AceIsotopeData {
+pub async fn get_parsed_ascii_for_testing() -> AceIsotopeData {
     // In effect, this acts as a sloppy integration test as it involves
     // the parsing of an actual ASCII ACE file.
     let mut data: std::sync::MutexGuard<'_, Option<AceIsotopeData>> = PARSED_ACE_FILE.lock().unwrap();
     if data.is_none() {
         let start = std::time::SystemTime::now();
-        let parsed_ace = AceIsotopeData::from_file("test_files/hydrogen_test_file").unwrap();
+        let parsed_ace = AceIsotopeData::from_file("test_files/hydrogen_test_file").await.unwrap();
         println!(
-            "Time to parse ACE file: {} sec",
+            "⚛️  Time to parse ACE file ⚛️ : {} sec",
             std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()
         );
         *data = Some(parsed_ace);

@@ -3,28 +3,28 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 
-use crate::ace::header::AceHeader;
-use crate::ace::arrays::{IzawPair, IzawArray};
 use crate::ace::utils::is_ascii_file;
-
-use super::arrays::{JxsArray, NxsArray};
+use crate::ace::header::AceHeader;
+use crate::ace::arrays::{IzawPair, IzawArray, JxsArray, NxsArray};
+use crate::ace::blocks::DataBlocks;
 
 #[derive(Clone)]
 pub struct AceIsotopeData {
     header: AceHeader,
     izaw_array: IzawArray,
     nxs_array: NxsArray,
-    jxs_array: JxsArray
+    jxs_array: JxsArray,
+    data_blocks: DataBlocks
 }
 
 impl AceIsotopeData {
-    pub fn from_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Box<dyn Error>> {
+    pub async fn from_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Box<dyn Error>> {
         let path = file_path.as_ref();
 
         // Invoke ASCII or binary parsing based on file type
         if is_ascii_file(path)? {
             // Parse ASCII file
-            let ace_data = AceIsotopeData::from_ascii_file(path)?;
+            let ace_data = AceIsotopeData::from_ascii_file(path).await?;
             Ok(ace_data)
         } else {
             // Parse binary file
@@ -33,7 +33,7 @@ impl AceIsotopeData {
     }
 
     // Create an AceIsotopeData object from an ASCII file
-    pub fn from_ascii_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub async fn from_ascii_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let file = File::open(path).map_err(|e| format!("Error opening ACE ASCII file: {}", e))?;
         let mut reader = BufReader::new(file);
 
@@ -49,7 +49,10 @@ impl AceIsotopeData {
         // Process the JXS array
         let jxs_array = JxsArray::from_ascii_file(&mut reader)?;
 
-        Ok(Self { header, izaw_array, nxs_array, jxs_array })
+        // Process the blocks out of the XXS array
+        let data_blocks = DataBlocks::from_ascii_file(&mut reader, &nxs_array, &jxs_array).await?;
+
+        Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks})
     }
 
     // ZAID of the isotope
@@ -123,39 +126,39 @@ impl AceIsotopeData {
 mod ascii_tests {
     use crate::ace::utils::get_parsed_ascii_for_testing;
 
-    #[test]
-    fn test_szaid_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_szaid_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.szaid(), Some(String::from("1001.800nc")));
     }
 
-    #[test]
-    fn test_zaid_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_zaid_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.zaid(), String::from("1001.00c"));
     }
 
-    #[test]
-    fn test_atomic_mass_fraction_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_atomic_mass_fraction_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.atomic_mass_fraction(), 0.999167);
     }
 
-    #[test]
-    fn test_kT_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_kT_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.kT(), 2.5301e-08);
     }
 
-    #[test]
-    fn test_temperature_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_temperature_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.temperature(), 293.6059129982851);
     }
 
-    #[test]
-    fn test_izaw_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_izaw_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         for za_iz_pair in parsed_ace.s_a_b_pairs() {
             assert_eq!(za_iz_pair.za, 0);
             assert_eq!(za_iz_pair.iz, 0.0);
@@ -163,33 +166,33 @@ mod ascii_tests {
         assert_eq!(parsed_ace.s_a_b_pairs().len(), 16)
     }
 
-    #[test]
-    fn test_num_entries_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_num_entries_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.num_entries(), 10257);
     }
 
-    #[test]
-    fn test_num_energies_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_num_energies_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.num_energies(), 631);
     }
 
-    #[test]
-    fn test_za_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_za_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.za(), 1001);
     }
 
-    #[test]
-    fn test_z_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_z_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.z(), 1);
     }
 
-    #[test]
-    fn test_a_parsing() {
-        let parsed_ace = get_parsed_ascii_for_testing();
+    #[tokio::test]
+    async fn test_a_parsing() {
+        let parsed_ace = get_parsed_ascii_for_testing().await;
         assert_eq!(parsed_ace.a(), 1);
     }
 }
