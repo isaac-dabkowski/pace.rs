@@ -30,11 +30,11 @@ pub type AsyncTaskResult<T> = BoxFuture<'static, TaskResult<T>>;
 pub type TaskFunction<K, T> = Arc<dyn Fn(TaskResults<K, T>) -> AsyncTaskResult<T> + Send + Sync>;
 
 // Trait to simplify result retrieval from TaskResults type
-pub trait GetResult<K: DagKey, T: DagValue> {
+pub trait GetTaskResult<K: DagKey, T: DagValue> {
     fn get_result(&self, key: &K) -> TaskResult<T>;
 }
-// Default implementation of GetResult
-impl<K: DagKey, T: DagValue> GetResult<K, T> for TaskResults<K, T> {
+// Default implementation of GetTaskResult
+impl<K: DagKey, T: DagValue> GetTaskResult<K, T> for TaskResults<K, T> {
     fn get_result(&self, key: &K) -> TaskResult<T> {
         self.get(key)
             .map(|v| v.value().clone())

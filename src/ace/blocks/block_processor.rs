@@ -9,15 +9,19 @@ use crate::ace::blocks::{
     DataBlockType,
     DataBlock,
     ESZ,
-    MTR
+    MTR,
+    LSIG,
+    SIG,
 };
 use crate::ace::arrays::{JxsArray, NxsArray};
-use crate::async_task_dag::{Task, AsyncTaskDag};
+use crate::async_task_dag::{AsyncTaskDag, Task, TaskResults, GetTaskResult};
 
 #[derive(Clone, Debug, Default)]
 pub struct DataBlocks {
     pub ESZ: Option<ESZ>,
-    pub MTR: Option<MTR>
+    pub MTR: Option<MTR>,
+    pub LSIG: Option<LSIG>,
+    pub SIG: Option<SIG>
 }
 
 impl DataBlocks {
@@ -71,6 +75,8 @@ impl DataBlocks {
         match block_type {
             DataBlockType::ESZ => Some(ESZ::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
             DataBlockType::MTR => Some(MTR::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::LSIG => Some(LSIG::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::SIG => Some(SIG::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
             _ => {
                 println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
                 None
@@ -104,6 +110,41 @@ impl DataBlocks {
         let mtr_task = Task::new(DataBlockType::MTR, mtr_closure);
         let mtr_task_id = dag.add_task(mtr_task);
 
+        // Cross section locations
+        let lsig_text = block_map.get(&DataBlockType::LSIG).unwrap().clone();
+        let lsig_closure = {
+            move |_| async move {
+                Ok(DataBlock::LSIG(LSIG::process(lsig_text.clone())))
+            }
+        };
+        let lsig_task = Task::new(DataBlockType::LSIG, lsig_closure);
+        let lsig_task_id = dag.add_task(lsig_task);
+
+        // Cross section values
+        let sig_text = block_map.get(&DataBlockType::SIG).unwrap().clone();
+        let sig_closure = {
+            move |results: TaskResults<DataBlockType, DataBlock>| async move {
+                let esz = match results.get_result(&DataBlockType::ESZ)? {
+                    DataBlock::ESZ(val) => val,
+                    _ => panic!("ESZ block was likely improperly parsed!")
+                };
+                let mtr = match results.get_result(&DataBlockType::MTR)? {
+                    DataBlock::MTR(val) => val,
+                    _ => panic!("MTR block was likely improperly parsed!")
+                };
+                let lsig = match results.get_result(&DataBlockType::LSIG)? {
+                    DataBlock::LSIG(val) => val,
+                    _ => panic!("LSIG block was likely improperly parsed!")
+                };
+                Ok(DataBlock::SIG(SIG::process(sig_text.clone(), mtr, lsig, esz)))
+            }
+        };
+        let sig_task = Task::new(DataBlockType::SIG, sig_closure);
+        let sig_task_id = dag.add_task(sig_task);
+        dag.add_task_dependency(esz_task_id, sig_task_id).unwrap();
+        dag.add_task_dependency(mtr_task_id, sig_task_id).unwrap();
+        dag.add_task_dependency(lsig_task_id, sig_task_id).unwrap();
+
         dag
     }
 
@@ -115,10 +156,12 @@ impl DataBlocks {
             match (block_type, block_value) {
                 (DataBlockType::ESZ, DataBlock::ESZ(esz)) => data_blocks.ESZ = Some(esz.clone()),
                 (DataBlockType::MTR, DataBlock::MTR(mtr)) => data_blocks.MTR = Some(mtr.clone()),
+                (DataBlockType::LSIG, DataBlock::LSIG(lsig)) => data_blocks.LSIG = Some(lsig.clone()),
+                (DataBlockType::SIG, DataBlock::SIG(sig)) => data_blocks.SIG = Some(sig.clone()),
                 _ => println!("Block type {} has been processed but is not passed back onto DataBlocks!", block_type),
             }
         }
-        println!("{:?}", data_blocks.MTR.clone().unwrap());
+        println!("{}", data_blocks.SIG.clone().unwrap());
         data_blocks
     }
 }

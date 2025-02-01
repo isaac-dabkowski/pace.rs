@@ -1,8 +1,5 @@
 use strum_macros::EnumIter;
-use crate::ace::blocks::{
-    ESZ,
-    MTR
-};
+use crate::ace::blocks;
 
 // Enum of all block types in continuous neutron ACE file
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
@@ -48,8 +45,10 @@ impl std::fmt::Display for DataBlockType {
 // Enum for holding concrete processed blocks
 #[derive(Debug, Clone)]
 pub enum DataBlock {
-    ESZ(ESZ),
-    MTR(MTR)
+    ESZ(blocks::ESZ),
+    MTR(blocks::MTR),
+    LSIG(blocks::LSIG),
+    SIG(blocks::SIG),
 }
 
 #[cfg(test)]

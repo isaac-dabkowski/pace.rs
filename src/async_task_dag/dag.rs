@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use dashmap::DashMap;
 
-use crate::async_task_dag::types::{DagKey, DagValue, TaskResult, TaskResults, GetResult};
+use crate::async_task_dag::types::{DagKey, DagValue, TaskResult, TaskResults, GetTaskResult};
 use crate::async_task_dag::task::Task;
 
 // ===================================================================================
