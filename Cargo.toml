@@ -8,6 +8,7 @@ daggy = "0.8.0"
 dashmap = "6.1.0"
 futures = "0.3.31"
 lazy_static = "1.5.0"
+memmap2 = "0.9.5"
 polars = {version = "0.45.1", featues = ["lazy"]}
 rayon = "1.10.0"
 strum = "0.26.3"

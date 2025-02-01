@@ -823,6 +823,7 @@ dependencies = [
  "dashmap",
  "futures",
  "lazy_static",
+ "memmap2",
  "polars",
  "rayon",
  "strum",

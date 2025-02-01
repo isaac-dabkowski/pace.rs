@@ -32,8 +32,7 @@ pub struct SIG {
 }
 
 impl SIG {
-    pub fn process(text_data: Vec<String>, mtr: MTR, lsig: LSIG, esz: ESZ) -> Self {
-        let time = std::time::SystemTime::now();
+    pub fn process(text_data: &[&str], mtr: &MTR, lsig: &LSIG, esz: &ESZ) -> Self {
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
     
         // Parallelize the loop over cross sections using par_iter()
@@ -56,11 +55,6 @@ impl SIG {
             let mut xs_lock = xs.lock().unwrap();
             xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
         });
-    
-        println!(
-            "⚛️  Time to process SIG ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
     
         Self {
             xs: xs.into_inner().unwrap(), // Access the final xs map

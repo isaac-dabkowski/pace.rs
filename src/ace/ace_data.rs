@@ -38,45 +38,19 @@ impl AceIsotopeData {
         let mut reader = BufReader::new(file);
 
         // Process the header
-        let time = std::time::SystemTime::now();
         let header = AceHeader::from_ascii_file(&mut reader)?;
-        println!(
-            "⚛️  Time to parse header ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
-        let time = std::time::SystemTime::now();
 
         // Process the IZAW array
         let izaw_array = IzawArray::from_ascii_file(&mut reader)?;
-        println!(
-            "⚛️  Time to parse IZAW ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
-        let time = std::time::SystemTime::now();
 
         // Process the NXS array
         let nxs_array = NxsArray::from_ascii_file(&mut reader)?;
-        println!(
-            "⚛️  Time to parse NXS ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
-        let time = std::time::SystemTime::now();
 
         // Process the JXS array
         let jxs_array = JxsArray::from_ascii_file(&mut reader)?;
-        println!(
-            "⚛️  Time to parse JXS ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
-        let time = std::time::SystemTime::now();
 
         // Process the blocks out of the XXS array
         let data_blocks = DataBlocks::from_ascii_file(&mut reader, &nxs_array, &jxs_array).await?;
-        println!(
-            "⚛️  Time to parse data blocks ⚛️ : {} sec",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_secs_f32()
-        );
-        let time = std::time::SystemTime::now();
 
         Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks})
     }

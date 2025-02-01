@@ -16,8 +16,7 @@ pub struct ESZ {
 }
 
 impl ESZ {
-    pub fn process(text_data: Vec<String>, nxs_array: &NxsArray) -> Self {
-        let time = std::time::SystemTime::now();
+    pub fn process(text_data: &[&str], nxs_array: &NxsArray) -> Self {
         let num_energy_points = nxs_array.nes;
         // Energy grid
         let energy: Vec<f64> = text_data[0..num_energy_points]
@@ -44,10 +43,7 @@ impl ESZ {
             .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
-        println!(
-            "⚛️  Time to process ESZ ⚛️ : {} μs",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
-        );
+
         Self {
             energy,
             total_xs,
