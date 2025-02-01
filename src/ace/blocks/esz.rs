@@ -1,5 +1,7 @@
 // Represents the ESZ data block - this is the energy grid for our ACE file, along with several
 // basic cross sections.
+use rayon::prelude::*;
+
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
 
@@ -15,32 +17,37 @@ pub struct ESZ {
 
 impl ESZ {
     pub fn process(text_data: Vec<String>, nxs_array: &NxsArray) -> Self {
+        let time = std::time::SystemTime::now();
         let num_energy_points = nxs_array.nes;
         // Energy grid
         let energy: Vec<f64> = text_data[0..num_energy_points]
-            .iter()
+            .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
         // Total cross section
         let total_xs: Vec<f64> = text_data[num_energy_points..2 * num_energy_points]
-            .iter()
+            .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
         // Dissapearence cross section
         let dissapearance_xs: Vec<f64> = text_data[2 * num_energy_points..3 * num_energy_points]
-            .iter()
+            .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
         // Elastic cross section
         let elastic_xs: Vec<f64> = text_data[3 * num_energy_points..4 * num_energy_points]
-            .iter()
+            .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
         // Average heating numbers
         let average_heating_numbers: Vec<f64> = text_data[4 * num_energy_points..5 * num_energy_points]
-            .iter()
+            .par_iter()
             .map(|val| val.parse().unwrap())
             .collect();
+        println!(
+            "⚛️  Time to process ESZ ⚛️ : {} μs",
+            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
+        );
         Self {
             energy,
             total_xs,

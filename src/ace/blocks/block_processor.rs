@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 
 use strum::IntoEnumIterator;
+use rayon::prelude::*;
 
 use crate::ace::blocks::{
     DataBlockType,
@@ -66,13 +67,13 @@ impl DataBlocks {
             std::time::SystemTime::now().duration_since(time).unwrap().as_millis()
         );
         let time = std::time::SystemTime::now();
-        
+
         // Split XXS array into raw text correspoding to each block
         let block_map = DataBlocks::split_ascii_xxs_into_blocks(nxs_array, jxs_array, &xxs_array);
         // println!("{:?}", block_map);
         println!(
-            "⚛️  Time to split XXS into blocks ⚛️ : {} ms",
-            std::time::SystemTime::now().duration_since(time).unwrap().as_millis()
+            "⚛️  Time to split XXS into blocks ⚛️ : {} μs",
+            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
         );
         let time = std::time::SystemTime::now();
 
@@ -132,38 +133,39 @@ impl DataBlocks {
         let nxs_array = nxs_array.clone();
 
         // Energy grid
-        let esz_text = block_map.get(&DataBlockType::ESZ).unwrap().iter().map(|s| s.to_string()).collect::<Vec<String>>().clone();
+        let esz_text = block_map.get(&DataBlockType::ESZ).unwrap().par_iter().map(|&s| String::from(s)).collect();
         let esz_closure = {
             let nxs_array = nxs_array.clone();
             move |_| async move {
-                Ok(DataBlock::ESZ(ESZ::process(esz_text.clone(), &nxs_array)))
+                Ok(DataBlock::ESZ(ESZ::process(esz_text, &nxs_array)))
             }
         };
         let esz_task = Task::new(DataBlockType::ESZ, esz_closure);
         let esz_task_id = dag.add_task(esz_task);
 
+
         // Reaction MT values
-        let mtr_text = block_map.get(&DataBlockType::MTR).unwrap().iter().map(|s| s.to_string()).collect::<Vec<String>>().clone();
+        let mtr_text = block_map.get(&DataBlockType::MTR).unwrap().iter().map(|&s| String::from(s)).collect::<Vec<String>>().clone();
         let mtr_closure = {
             move |_| async move {
-                Ok(DataBlock::MTR(MTR::process(mtr_text.clone())))
+                Ok(DataBlock::MTR(MTR::process(mtr_text)))
             }
         };
         let mtr_task = Task::new(DataBlockType::MTR, mtr_closure);
         let mtr_task_id = dag.add_task(mtr_task);
 
         // Cross section locations
-        let lsig_text = block_map.get(&DataBlockType::LSIG).unwrap().iter().map(|s| s.to_string()).collect::<Vec<String>>().clone();
+        let lsig_text = block_map.get(&DataBlockType::LSIG).unwrap().iter().map(|&s| String::from(s)).collect::<Vec<String>>().clone();
         let lsig_closure = {
             move |_| async move {
-                Ok(DataBlock::LSIG(LSIG::process(lsig_text.clone())))
+                Ok(DataBlock::LSIG(LSIG::process(lsig_text)))
             }
         };
         let lsig_task = Task::new(DataBlockType::LSIG, lsig_closure);
         let lsig_task_id = dag.add_task(lsig_task);
 
         // Cross section values
-        let sig_text = block_map.get(&DataBlockType::SIG).unwrap().iter().map(|s| s.to_string()).collect::<Vec<String>>().clone();
+        let sig_text = block_map.get(&DataBlockType::SIG).unwrap().par_iter().map(|&s| String::from(s)).collect();
         let sig_closure = {
             move |results: TaskResults<DataBlockType, DataBlock>| async move {
                 let esz = match results.get_result(&DataBlockType::ESZ)? {
@@ -178,7 +180,7 @@ impl DataBlocks {
                     DataBlock::LSIG(val) => val,
                     _ => panic!("LSIG block was likely improperly parsed!")
                 };
-                Ok(DataBlock::SIG(SIG::process(sig_text.clone(), mtr, lsig, esz)))
+                Ok(DataBlock::SIG(SIG::process(sig_text, mtr, lsig, esz)))
             }
         };
         let sig_task = Task::new(DataBlockType::SIG, sig_closure);

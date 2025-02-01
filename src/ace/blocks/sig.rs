@@ -1,7 +1,10 @@
 // Represents the SIG data block - this contains incident neutron cross section data
 
+use std::sync::Mutex;
 // See page 17 of the ACE format spec for a description of the SIG block
 use std::{collections::HashMap, iter::zip};
+
+use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
 use crate::ace::arrays::{NxsArray, JxsArray};
@@ -30,33 +33,41 @@ pub struct SIG {
 
 impl SIG {
     pub fn process(text_data: Vec<String>, mtr: MTR, lsig: LSIG, esz: ESZ) -> Self {
-        let mut xs = CrossSectionMap::default();
-
-        // Loop over cross sections
-        for (mt, start_pos) in zip(mtr.reaction_types, lsig.xs_locs) {
-            // Get the first position in the energy grid where we have a cross section value.
-            // This is simply the first entry in the section of the SIG block which corresponds
-            // to our cross section.
+        let time = std::time::SystemTime::now();
+        let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
+    
+        // Parallelize the loop over cross sections using par_iter()
+        mtr.reaction_types.par_iter().zip(lsig.xs_locs.par_iter()).for_each(|(mt, start_pos)| {
+            // Get the first position in the energy grid where we have a cross section value
             let energy_start_index: usize = text_data[start_pos - 1].parse().unwrap();
             // Get the number of entries we have for the cross section
-            let num_xs_values: usize = text_data[start_pos].parse().unwrap();
-
-            // Get the cross section values
-            let xs_val: Vec<f64> = text_data[start_pos+1..start_pos+1+num_xs_values]
-                .iter()
+            let num_xs_values: usize = text_data[*start_pos].parse().unwrap();
+        
+            // Get the cross section values in parallel
+            let xs_val: Vec<f64> = text_data[start_pos + 1..start_pos + 1 + num_xs_values]
+                .par_iter()
                 .map(|val| val.parse().unwrap())
                 .collect();
-
-            // Get the corresponding energy values
+        
+            // Get the corresponding energy values (no need to parallelize here)
             let energy: Vec<f64> = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
-
-            // Construct the cross section and add it to our map
-            xs.insert(mt, CrossSection{ mt, energy, xs_val });
+        
+            // Lock the Mutex and insert into the CrossSectionMap
+            let mut xs_lock = xs.lock().unwrap();
+            xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
+        });
+    
+        println!(
+            "⚛️  Time to process SIG ⚛️ : {} μs",
+            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
+        );
+    
+        Self {
+            xs: xs.into_inner().unwrap(), // Access the final xs map
         }
-        Self { xs }
     }
 
-    // Pull n SIG block from a XXS array
+    // Pull a SIG block from a XXS array
     pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
         // Block start index
         let block_start = jxs_array.get(&DataBlockType::SIG);

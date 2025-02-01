@@ -11,10 +11,15 @@ pub struct MTR {
 
 impl MTR {
     pub fn process(text_data: Vec<String>) -> Self {
+        let time = std::time::SystemTime::now();
         let reaction_types: Vec<usize> = text_data
             .iter()
             .map(|val| val.parse().unwrap())
             .collect();
+        println!(
+            "⚛️  Time to process MTR ⚛️ : {} μs",
+            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
+        );
         Self { reaction_types }
     }
 

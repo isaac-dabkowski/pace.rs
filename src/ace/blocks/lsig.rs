@@ -10,10 +10,15 @@ pub struct LSIG {
 
 impl LSIG {
     pub fn process(text_data: Vec<String>) -> Self {
+        let time = std::time::SystemTime::now();
         let xs_locs: Vec<usize> = text_data
             .iter()
             .map(|val| val.parse().unwrap())
             .collect();
+        println!(
+            "⚛️  Time to process LSIG ⚛️ : {} μs",
+            std::time::SystemTime::now().duration_since(time).unwrap().as_micros()
+        );
         Self { xs_locs }
     }
 
