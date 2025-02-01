@@ -19,14 +19,14 @@ impl MTR {
     }
 
     // Pull an MTR block from a XXS array
-    pub fn pull_from_ascii_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &[String]) -> Vec<String> {
+    pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
         // Block start index
         let block_start = jxs_array.get(&DataBlockType::MTR);
         // Calculate the block end index, see the MTR description in the ACE spec
         let num_reactions = nxs_array.ntr;
         let block_end = block_start + num_reactions;
         // Return the block
-        xxs_array[block_start..block_end].to_vec()
+        &xxs_array[block_start..block_end]
     }
 }
 

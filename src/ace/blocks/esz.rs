@@ -14,7 +14,7 @@ pub struct ESZ {
 }
 
 impl ESZ {
-    pub fn process(text_data: Vec<String>, nxs_array: &crate::ace::arrays::NxsArray) -> Self {
+    pub fn process(text_data: Vec<String>, nxs_array: &NxsArray) -> Self {
         let num_energy_points = nxs_array.nes;
         // Energy grid
         let energy: Vec<f64> = text_data[0..num_energy_points]
@@ -51,7 +51,7 @@ impl ESZ {
     }
 
     // Pull an ESZ block from a XXS array
-    pub fn pull_from_ascii_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &[String]) -> Vec<String> {
+    pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
         // Block start index
         let block_start = jxs_array.get(&DataBlockType::ESZ);
         // Calculate the block end index, see the ESZ description in the ACE spec
@@ -59,7 +59,7 @@ impl ESZ {
         let block_length = 5 * num_energies;
         let block_end = block_start + block_length;
         // Return the block
-        xxs_array[block_start..block_end].to_vec()
+        &xxs_array[block_start..block_end]
     }
 }
 

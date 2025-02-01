@@ -57,22 +57,22 @@ impl SIG {
     }
 
     // Pull n SIG block from a XXS array
-    pub fn pull_from_ascii_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &[String]) -> Vec<String> {
+    pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
         // Block start index
         let block_start = jxs_array.get(&DataBlockType::SIG);
 
         // Loop over the number of cross sections
         let mut current_offset: usize = 1;
-        for _ in 0..nxs_array.ntr+1 {
+        for _ in 0..nxs_array.ntr {
             // Get the number of energy points in the cross section
-            let num_entries: usize = xxs_array[block_start + current_offset].parse().unwrap();
+            let num_entries: usize = xxs_array[block_start + current_offset].trim().parse().unwrap();
             // Jump forward to the next cross section
             current_offset += num_entries + 2;
         }
         // Calculate the block end index, see the SIG description in the ACE spec
         let block_end = block_start + current_offset;
         // Return the block
-        xxs_array[block_start..block_end].to_vec()
+        &xxs_array[block_start..block_end]
     }
 }
 

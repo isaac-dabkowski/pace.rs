@@ -61,7 +61,7 @@ pub async fn get_parsed_ascii_for_testing() -> AceIsotopeData {
     let mut data: std::sync::MutexGuard<'_, Option<AceIsotopeData>> = PARSED_ACE_FILE.lock().unwrap();
     if data.is_none() {
         let start = std::time::SystemTime::now();
-        let parsed_ace = AceIsotopeData::from_file("test_files/hydrogen_test_file").await.unwrap();
+        let parsed_ace = AceIsotopeData::from_file("test_files/uranium_test_file").await.unwrap();
         println!(
             "⚛️  Time to parse ACE file ⚛️ : {} sec",
             std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()
