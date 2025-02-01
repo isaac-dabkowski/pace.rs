@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use dashmap::DashMap;
 use futures::future::BoxFuture;
 use std::sync::Arc;

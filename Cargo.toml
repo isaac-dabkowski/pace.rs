@@ -6,15 +6,11 @@ edition = "2021"
 [dependencies]
 daggy = "0.8.0"
 dashmap = "6.1.0"
-env_logger = "0.11.6"
 futures = "0.3.31"
 lazy_static = "1.5.0"
-log = "0.4.25"
 polars = {version = "0.45.1", featues = ["lazy"]}
 rayon = "1.10.0"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 tempfile = "3.15.0"
-thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["full"] }
-warn = "0.2.2"

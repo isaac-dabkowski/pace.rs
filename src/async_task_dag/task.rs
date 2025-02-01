@@ -54,8 +54,6 @@ mod tests {
 
     use dashmap::DashMap;
 
-    use crate::async_task_dag::types::{GetResult, TaskResult};
-
     #[tokio::test]
     async fn test_task_create_and_exec() {
         let results: TaskResults<String, i32> = Arc::new(DashMap::new());

@@ -1,3 +1,5 @@
+#![allow(clippy::await_holding_lock, dead_code)]
+
 use std::sync::Mutex;
 use std::io::{self, Read, Write, Seek, BufReader, BufRead};
 use std::path::Path;
@@ -39,7 +41,7 @@ pub fn compute_temperature_from_kT(kT: f64) -> f64 {
 }
 
 // Create a reader from a string to aid in testing
-#[allow(dead_code)]
+#[inline]
 pub fn create_reader_from_string(content: &str) -> BufReader<File> {
     let mut test_file = tempfile().unwrap();
     writeln!(&mut test_file, "{}", content).unwrap();
@@ -53,7 +55,6 @@ lazy_static! {
     pub static ref PARSED_ACE_FILE: Mutex<Option<AceIsotopeData>> = Mutex::new(None);
 }
 
-#[allow(dead_code)]
 pub async fn get_parsed_ascii_for_testing() -> AceIsotopeData {
     // In effect, this acts as a sloppy integration test as it involves
     // the parsing of an actual ASCII ACE file.

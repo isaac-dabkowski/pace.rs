@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use daggy::petgraph::visit::IntoNodeIdentifiers;
 use daggy::{Dag, NodeIndex, Walker};
 use daggy::petgraph::algo::toposort;
@@ -184,7 +186,7 @@ mod tests {
         let task3 = Task::new(String::from("task3"), task3_closure);
         let task1_id = dag.add_task(task1);
         let task2_id = dag.add_task(task2);
-        let task3_id = dag.add_task(task3);
+        dag.add_task(task3);
 
         // Set dependencies
         dag.add_task_dependency(task1_id, task2_id).unwrap();

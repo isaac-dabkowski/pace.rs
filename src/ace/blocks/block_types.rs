@@ -1,9 +1,8 @@
 use strum_macros::EnumIter;
-use crate::async_task_dag::DagValue;
-use crate::ace::blocks::ESZ;
-
-// Marker trait that something is a data block
-pub trait IsDataBlock {}
+use crate::ace::blocks::{
+    ESZ,
+    MTR
+};
 
 // Enum of all block types in continuous neutron ACE file
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
@@ -49,7 +48,8 @@ impl std::fmt::Display for DataBlockType {
 // Enum for holding concrete processed blocks
 #[derive(Debug, Clone)]
 pub enum DataBlock {
-    ESZ(ESZ)
+    ESZ(ESZ),
+    MTR(MTR)
 }
 
 #[cfg(test)]
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_iter() {
         let mut count = 0;
-        for block_type in DataBlockType::iter() {
+        for _ in DataBlockType::iter() {
             count += 1;
         }
         assert_eq!(count, 30); // Ensure the count matches the number of enum variants

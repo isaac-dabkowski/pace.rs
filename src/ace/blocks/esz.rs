@@ -1,7 +1,7 @@
 // Represents the ESZ data block - this is the energy grid for our ACE file, along with several
 // basic cross sections.
 use crate::ace::arrays::{NxsArray, JxsArray};
-use crate::ace::blocks::{IsDataBlock, DataBlockType};
+use crate::ace::blocks::DataBlockType;
 
 // See page 12 of the ACE format spec for a description of the ESZ block
 #[derive(Debug, Clone, PartialEq)]
@@ -12,8 +12,6 @@ pub struct ESZ {
     pub elastic_xs: Vec<f64>,
     pub average_heating_numbers: Vec<f64>,
 }
-
-impl IsDataBlock for ESZ {}
 
 impl ESZ {
     pub fn process(text_data: Vec<String>, nxs_array: &crate::ace::arrays::NxsArray) -> Self {

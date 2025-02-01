@@ -2,22 +2,22 @@ use std::error::Error;
 use std::fs::File;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
-use std::ops::{Deref, DerefMut};
 
 use strum::IntoEnumIterator;
 
 use crate::ace::blocks::{
-    IsDataBlock,
     DataBlockType,
     DataBlock,
-    ESZ
+    ESZ,
+    MTR
 };
 use crate::ace::arrays::{JxsArray, NxsArray};
-use crate::async_task_dag::{DagValue, Task, AsyncTaskDag};
+use crate::async_task_dag::{Task, AsyncTaskDag};
 
 #[derive(Clone, Debug, Default)]
 pub struct DataBlocks {
-    pub ESZ: Option<ESZ>
+    pub ESZ: Option<ESZ>,
+    pub MTR: Option<MTR>
 }
 
 impl DataBlocks {
@@ -70,6 +70,7 @@ impl DataBlocks {
     fn pull_block_from_ascii_xxs_array(block_type: &DataBlockType, nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &[String]) -> Option<Vec<String>> {
         match block_type {
             DataBlockType::ESZ => Some(ESZ::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::MTR => Some(MTR::pull_from_ascii_xxs_array(nxs_array, jxs_array, xxs_array)),
             _ => {
                 println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
                 None
@@ -93,6 +94,16 @@ impl DataBlocks {
         let esz_task = Task::new(DataBlockType::ESZ, esz_closure);
         let esz_task_id = dag.add_task(esz_task);
 
+        // Reaction MT values
+        let mtr_text = block_map.get(&DataBlockType::MTR).unwrap().clone();
+        let mtr_closure = {
+            move |_| async move {
+                Ok(DataBlock::MTR(MTR::process(mtr_text.clone())))
+            }
+        };
+        let mtr_task = Task::new(DataBlockType::MTR, mtr_closure);
+        let mtr_task_id = dag.add_task(mtr_task);
+
         dag
     }
 
@@ -103,22 +114,17 @@ impl DataBlocks {
             let (block_type, block_value) = result.pair();
             match (block_type, block_value) {
                 (DataBlockType::ESZ, DataBlock::ESZ(esz)) => data_blocks.ESZ = Some(esz.clone()),
+                (DataBlockType::MTR, DataBlock::MTR(mtr)) => data_blocks.MTR = Some(mtr.clone()),
                 _ => println!("Block type {} has been processed but is not passed back onto DataBlocks!", block_type),
             }
         }
-        println!("{:?}", data_blocks.ESZ.clone().unwrap().elastic_xs);
+        println!("{:?}", data_blocks.MTR.clone().unwrap());
         data_blocks
     }
 }
 
 impl std::fmt::Display for DataBlocks {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
-}
-
-#[cfg(test)]
-mod ascii_tests {
-    use super::*;
-    use crate::ace::utils;
 }
