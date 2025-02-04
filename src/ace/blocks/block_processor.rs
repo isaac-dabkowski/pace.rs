@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufReader, Read};
 
 use strum::IntoEnumIterator;
 use rayon::prelude::*;
@@ -63,25 +63,7 @@ impl DataBlocks {
         // Split XXS array into raw text correspoding to each block
         let block_map = DataBlocks::split_ascii_xxs_into_blocks(nxs_array, jxs_array, &xxs_array);
 
-        // Build an AsyncTaskDag to process all of our blocks
-        // let dag = DataBlocks::construct_dag(block_map, nxs_array);
-        // println!(
-        //     "⚛️  Time to construct DAG ⚛️ : {} ms",
-        //     std::time::SystemTime::now().duration_since(time).unwrap().as_millis()
-        // );
-        // let time = std::time::SystemTime::now();
-
-        // // Execute the DAG
-        // dag.execute().await.unwrap();
-        // println!(
-        //     "⚛️  Time to execute DAG ⚛️ : {} ms",
-        //     std::time::SystemTime::now().duration_since(time).unwrap().as_millis()
-        // );
-        // let time = std::time::SystemTime::now();
-
-        // // Pass the DAG results back onto our DataBlocks object
-        // let data_blocks = DataBlocks::from_dag_results(dag);
-
+        // Process the data blocks
         let data_blocks = DataBlocks::execute_in_serial(block_map, nxs_array);
 
         Ok( data_blocks )
@@ -181,6 +163,61 @@ impl DataBlocks {
         dag
     }
 
+    // Create a new BlockProcessor from a binary XXS array, the NXS and JXS array are used to
+    // determine the start and end locations of each block
+    pub async fn from_binary_file(reader: &mut BufReader<File>, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
+        // Read the entire XXS array into a vector
+        // Allocate a Vec<f64> for proper alignment
+        let num_f64 = nxs_array.xxs_len;
+        let mut xxs_array: Vec<f64> = vec![0.0; num_f64];
+
+        // Read the file into a byte slice, this will go out of scope at the end of the function
+        // but xxs_array will remain
+        let byte_slice = unsafe {
+            std::slice::from_raw_parts_mut(
+                xxs_array.as_mut_ptr() as *mut u8,
+                num_f64 * std::mem::size_of::<f64>(),
+            )
+        };
+        reader.read_exact(byte_slice)?;
+
+        // Split XXS array into raw text correspoding to each block
+        let block_map = DataBlocks::split_binary_xxs_into_blocks(nxs_array, jxs_array, &xxs_array);
+
+        let data_blocks = DataBlocks::execute_binary_in_serial(block_map, nxs_array);
+
+        Ok( data_blocks )
+    }
+
+    fn split_binary_xxs_into_blocks<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> HashMap<DataBlockType, &'a [f64]> {
+        let mut block_map: HashMap<DataBlockType, &'a [f64]> = HashMap::default();
+        // Loop over all possible DataBlockTypes
+        for block_type in DataBlockType::iter() {
+            // If the block type's start index is non-zero, the block is present in the XXS array
+            let start_index = jxs_array.get(&block_type);
+            if start_index != 0 {
+                // Pull the block from the XXS array (if procedure to do so has been implemented)
+                if let Some(block_data) = DataBlocks::pull_block_from_binary_xxs_array(&block_type, nxs_array, jxs_array, xxs_array) {
+                    block_map.insert(block_type, block_data);
+                }
+            }
+        }
+        block_map
+    }
+
+    fn pull_block_from_binary_xxs_array<'a>(block_type: &DataBlockType, nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> Option<&'a [f64]> {
+        match block_type {
+            DataBlockType::ESZ => Some(ESZ::pull_from_binary_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::MTR => Some(MTR::pull_from_binary_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::LSIG => Some(LSIG::pull_from_binary_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::SIG => Some(SIG::pull_from_binary_xxs_array(nxs_array, jxs_array, xxs_array)),
+            _ => {
+                // println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
+                None
+            }
+        }
+    }
+
     // Construct DataBlocks from results of a DAG
     fn from_dag_results(dag: AsyncTaskDag<DataBlockType, DataBlock>) -> Self {
         let mut data_blocks = DataBlocks::default();
@@ -214,6 +251,32 @@ impl DataBlocks {
         // Cross section values
         let sig_text = block_map.get(&DataBlockType::SIG).unwrap();
         let sig = SIG::process(sig_text, &mtr, &lsig, &esz);
+
+        Self {
+            ESZ: Some(esz),
+            MTR: Some(mtr),
+            LSIG: Some(lsig),
+            SIG: Some(sig),
+        }
+    }
+
+    // Does not construct a DAG
+    fn execute_binary_in_serial(block_map: HashMap<DataBlockType, &[f64]>, nxs_array: &NxsArray) -> Self {
+        // Energy grid
+        let esz_data = block_map.get(&DataBlockType::ESZ).unwrap();
+        let esz = ESZ::process_binary(esz_data, nxs_array);
+
+        // Reaction MT values
+        let mtr_data = block_map.get(&DataBlockType::MTR).unwrap();
+        let mtr = MTR::process_binary(mtr_data);
+
+        // Cross section locations
+        let lsig_data = block_map.get(&DataBlockType::LSIG).unwrap();
+        let lsig = LSIG::process_binary(lsig_data);
+
+        // Cross section values
+        let sig_data = block_map.get(&DataBlockType::SIG).unwrap();
+        let sig = SIG::process_binary(sig_data, &mtr, &lsig, &esz);
 
         Self {
             ESZ: Some(esz),

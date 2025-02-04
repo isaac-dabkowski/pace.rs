@@ -2,7 +2,7 @@
 
 use std::sync::Mutex;
 // See page 17 of the ACE format spec for a description of the SIG block
-use std::{collections::HashMap, iter::zip};
+use std::collections::HashMap;
 
 use rayon::prelude::*;
 
@@ -34,7 +34,7 @@ pub struct SIG {
 impl SIG {
     pub fn process(text_data: &[&str], mtr: &MTR, lsig: &LSIG, esz: &ESZ) -> Self {
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
-    
+
         // Parallelize the loop over cross sections using par_iter()
         mtr.reaction_types.par_iter().zip(lsig.xs_locs.par_iter()).for_each(|(mt, start_pos)| {
             // Get the first position in the energy grid where we have a cross section value
@@ -61,6 +61,31 @@ impl SIG {
         }
     }
 
+    pub fn process_binary(data: &[f64], mtr: &MTR, lsig: &LSIG, esz: &ESZ) -> Self {
+        let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
+
+        // Parallelize the loop over cross sections using par_iter()
+        mtr.reaction_types.par_iter().zip(lsig.xs_locs.par_iter()).for_each(|(mt, start_pos)| {
+            // Get the first position in the energy grid where we have a cross section value
+            let energy_start_index: usize = data[start_pos - 1].to_bits() as usize;
+            // Get the number of entries we have for the cross section
+            let num_xs_values: usize = data[*start_pos].to_bits() as usize;
+
+            // Get the cross section values
+            let xs_val: Vec<f64> = data[start_pos + 1..start_pos + 1 + num_xs_values].to_vec();
+            // Get the corresponding energy values
+            let energy: Vec<f64> = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
+        
+            // Lock the Mutex and insert into the CrossSectionMap
+            let mut xs_lock = xs.lock().unwrap();
+            xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
+        });
+
+        Self {
+            xs: xs.into_inner().unwrap(), // Access the final xs map
+        }
+    }
+
     // Pull a SIG block from a XXS array
     pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
         // Block start index
@@ -71,6 +96,24 @@ impl SIG {
         for _ in 0..nxs_array.ntr {
             // Get the number of energy points in the cross section
             let num_entries: usize = xxs_array[block_start + current_offset].trim().parse().unwrap();
+            // Jump forward to the next cross section
+            current_offset += num_entries + 2;
+        }
+        // Calculate the block end index, see the SIG description in the ACE spec
+        let block_end = block_start + current_offset;
+        // Return the block
+        &xxs_array[block_start..block_end]
+    }
+
+    pub fn pull_from_binary_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+        // Block start index (binary XXS is zero indexed for speed)
+        let block_start = jxs_array.get(&DataBlockType::SIG) - 1;
+
+        // Loop over the number of cross sections
+        let mut current_offset: usize = 1;
+        for _ in 0..nxs_array.ntr {
+            // Get the number of energy points in the cross section
+            let num_entries = xxs_array[block_start + current_offset].to_bits() as usize;
             // Jump forward to the next cross section
             current_offset += num_entries + 2;
         }

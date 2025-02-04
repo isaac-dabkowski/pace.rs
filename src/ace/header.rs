@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use crate::ace::utils;
 
 #[derive(Clone)]
@@ -40,6 +40,34 @@ impl AceHeader {
         let zaid = split_legacy_header[0].clone();
         let atomic_mass_fraction: f64 = split_legacy_header[1].parse()?;
         let kT: f64 = split_legacy_header[2].parse()?;
+        let temperature = utils::compute_temperature_from_kT(kT);
+
+        Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })
+    }
+
+    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
+        // Check if we have a SZAID
+        let szaid = if utils::read_int(reader) == 1 {
+            let szaid_len = utils::read_int(reader);
+            println!("{}", szaid_len);
+            let mut buffer = vec![0u8; szaid_len as usize];
+            reader.read_exact(&mut buffer)?;
+            Some(String::from_utf8(buffer).unwrap())
+        } else {
+            None
+        };
+
+        // Deal with ZAID
+        let zaid_len = utils::read_int(reader);
+        let mut buffer = vec![0u8; zaid_len as usize];
+        reader.read_exact(&mut buffer)?;
+        let zaid = String::from_utf8(buffer).unwrap();
+
+        // Handle atomic mass fraction
+        let atomic_mass_fraction = utils::read_float(reader);
+        // Handle kT
+        let kT = utils::read_float(reader);
+        // Calculate temperature in Kelvin
         let temperature = utils::compute_temperature_from_kT(kT);
 
         Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })

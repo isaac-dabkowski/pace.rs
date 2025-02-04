@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use crate::ace::utils;
 
 // Pair of values used in S alpha beta calculations
@@ -32,7 +32,7 @@ impl IzawArray {
         for line in izaw_array_text {
             // Split each line into 4 pairs of values
             for pair_idx in 0..4 {
-                let (za, iz) = Self::parse_za_iv_pair(&line, pair_idx)?;
+                let (za, iz) = Self::parse_ascii_za_iv_pair(&line, pair_idx)?;
                 pairs.push(IzawPair::new(za, iz))
             }
         }
@@ -40,7 +40,7 @@ impl IzawArray {
     }
 
     // Parses a pair of ZA and IZ values from a line.
-    fn parse_za_iv_pair(line: &str, pair_idx: usize) -> Result<(usize, f64), Box<dyn Error>> {
+    fn parse_ascii_za_iv_pair(line: &str, pair_idx: usize) -> Result<(usize, f64), Box<dyn Error>> {
         let start_idx = pair_idx * 18;
         let za_str = line[start_idx..start_idx + 7].trim();
         let iz_str = line[start_idx + 7..start_idx + 18].trim();
@@ -49,6 +49,26 @@ impl IzawArray {
         let iz = iz_str.parse::<f64>()?;
 
         Ok((za, iz))
+    }
+
+    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
+        // There are 32 ints in a IZAW array
+        let mut buffer = vec![0u8; 32 * 8];
+        reader.read_exact(&mut buffer)?;
+
+        // An IZAW array consists of 4 lines, each with four pairs of values in format 4(I7,F11.0).
+        let pairs = buffer.chunks_exact(16)
+            .map(
+                |chunk| {
+                    IzawPair::new(
+                        usize::from_ne_bytes(chunk[0..8].try_into().unwrap()),
+                        f64::from_ne_bytes(chunk[8..16].try_into().unwrap())
+                    )
+                }
+            )
+            .collect::<Vec<_>>();
+
+        Ok(Self { pairs })
     }
 }
 

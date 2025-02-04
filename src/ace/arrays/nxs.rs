@@ -69,6 +69,25 @@ impl NxsArray {
         })
     }
 
+    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
+        // A NXS array consists of 16 integers.
+        let nxs_array = utils::read_usizes(16, reader);
+
+        Ok(Self {
+            xxs_len: nxs_array[NxsIndex::XxsLen as usize],
+            za: nxs_array[NxsIndex::Za as usize],
+            nes: nxs_array[NxsIndex::Nes as usize],
+            ntr: nxs_array[NxsIndex::Ntr as usize],
+            nr: nxs_array[NxsIndex::Nr as usize],
+            ntrp: nxs_array[NxsIndex::Ntrp as usize],
+            ntype: nxs_array[NxsIndex::Ntype as usize],
+            npcr: nxs_array[NxsIndex::Npcr as usize],
+            s: nxs_array[NxsIndex::S as usize],
+            z: nxs_array[NxsIndex::Z as usize],
+            a: nxs_array[NxsIndex::A as usize],
+        })
+    }
+
     // Pull the value from a parsed NXS array by its index
     // Note that this is the 1-indexed value from the ACE spec
     pub fn value_at_index(&self, index: usize) -> Option<usize> {

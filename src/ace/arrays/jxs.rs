@@ -65,6 +65,22 @@ impl JxsArray {
         Ok(jxs_array)
     }
 
+    // Creates a new JxsArray from an ASCII file reader and NXS array information.
+    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
+        let mut jxs_array = JxsArray::default();
+        // A JXS array consists of 32 integers.
+        let jxs_array_entries = utils::read_usizes(32, reader);
+
+        // Fill in our array by looping over all DataBlockTypes
+        for block_type in DataBlockType::iter() {
+            // Get the index at which we should store the value
+            let jxs_index = JxsArray::index_from_data_block_type(&block_type);
+            jxs_array.insert(block_type, jxs_array_entries[jxs_index]);
+        }
+
+        Ok(jxs_array)
+    }
+
     // For a given DataBlockType, return the index in the JXS array which lists
     // its starting index in the main XXS array.
     fn index_from_data_block_type(block_type: &DataBlockType) -> usize {

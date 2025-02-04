@@ -28,7 +28,8 @@ impl AceIsotopeData {
             Ok(ace_data)
         } else {
             // Parse binary file
-            todo!()
+            let ace_data = AceIsotopeData::from_binary_file(path).await?;
+            Ok(ace_data)
         }
     }
 
@@ -51,6 +52,29 @@ impl AceIsotopeData {
 
         // Process the blocks out of the XXS array
         let data_blocks = DataBlocks::from_ascii_file(&mut reader, &nxs_array, &jxs_array).await?;
+
+        Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks})
+    }
+
+    // Create an AceIsotopeData object from a binary file
+    pub async fn from_binary_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let file = File::open(path).map_err(|e| format!("Error opening ACE ASCII file: {}", e))?;
+        let mut reader = BufReader::new(file);
+
+        // Process the header
+        let header = AceHeader::from_binary_file(&mut reader)?;
+
+        // Process the IZAW array
+        let izaw_array = IzawArray::from_binary_file(&mut reader)?;
+
+        // Process the NXS array
+        let nxs_array = NxsArray::from_binary_file(&mut reader)?;
+
+        // Process the JXS array
+        let jxs_array = JxsArray::from_binary_file(&mut reader)?;
+
+        // Process the blocks out of the XXS array
+        let data_blocks = DataBlocks::from_binary_file(&mut reader, &nxs_array, &jxs_array).await?;
 
         Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks})
     }
@@ -127,7 +151,7 @@ mod ascii_tests {
     use crate::ace::utils::get_parsed_ascii_for_testing;
 
     #[tokio::test]
-    async fn test_parse_file() {
+    async fn test_parse_ascii_file() {
         get_parsed_ascii_for_testing().await;
     }
 
@@ -204,4 +228,11 @@ mod ascii_tests {
 
 #[cfg(test)]
 mod binary_tests {
+    use crate::ace::utils::get_parsed_binary_for_testing;
+
+    #[tokio::test]
+    async fn test_parse_binary_file() {
+        get_parsed_binary_for_testing().await;
+    }
+
 }
