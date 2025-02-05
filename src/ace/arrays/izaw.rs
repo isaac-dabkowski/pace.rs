@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 use crate::ace::utils;
+use crate::ace::binary_format::BinaryMmap;
 
 // Pair of values used in S alpha beta calculations
 #[derive(Debug, Clone, PartialEq)]
@@ -51,13 +52,8 @@ impl IzawArray {
         Ok((za, iz))
     }
 
-    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
-        // There are 32 ints in a IZAW array
-        let mut buffer = vec![0u8; 32 * 8];
-        reader.read_exact(&mut buffer)?;
-
-        // An IZAW array consists of 4 lines, each with four pairs of values in format 4(I7,F11.0).
-        let pairs = buffer.chunks_exact(16)
+    pub fn from_binary_file(mmap: &BinaryMmap) -> Result<Self, Box<dyn Error>> {
+        let pairs = mmap.izaw_bytes().chunks_exact(16)
             .map(
                 |chunk| {
                     IzawPair::new(
@@ -67,7 +63,6 @@ impl IzawArray {
                 }
             )
             .collect::<Vec<_>>();
-
         Ok(Self { pairs })
     }
 }

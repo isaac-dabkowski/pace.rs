@@ -10,9 +10,8 @@ use tempfile::tempfile;
 use lazy_static::lazy_static;
 
 use crate::AceIsotopeData;
-use crate::ace::header::AceHeader;
 
-// Checks if a file is ASCII by reading the first 100 kB of the file
+// Checks if a file is ASCII by reading the first 1 kB of the file
 pub fn is_ascii_file<P: AsRef<Path>>(path: P) -> io::Result<bool> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
@@ -50,68 +49,6 @@ pub fn create_reader_from_string(content: &str) -> BufReader<File> {
     writeln!(&mut test_file, "{}", content).unwrap();
     test_file.seek(std::io::SeekFrom::Start(0)).unwrap();
     BufReader::new(test_file)
-}
-
-// This function converts an ASCII ACE file into a binary format
-pub fn convert_ascii_to_binary<P: AsRef<Path>>(input_path: P) -> Result<String, Box<dyn std::error::Error>> {
-    // Open input file for reading
-    let input_file = File::open(input_path.as_ref())?;
-    let mut reader = BufReader::new(input_file);
-
-    // File headers are inconsistent across ACE files, so we will invoke the ascii header parsing
-    // we implemented earlier to pull the relavent data.
-    let header = AceHeader::from_ascii_file(&mut reader)?;
-
-    // Set the binary file name to the SZAID if it is available. Otherwise, set it to the ZAID.
-    let output_filename = if let Some(ref val) = header.szaid {
-        Path::new(val)
-    } else {
-        Path::new(&header.zaid)
-    };
-    let output_path = input_path.as_ref()
-        .parent()
-        .unwrap()
-        .join(output_filename);
-
-    // Create output file for writing
-    let mut output_file = File::create(output_path.clone())?;
-
-    // Write the header information
-    // The first byte represents if we have a SZAID or not
-    match header.szaid {
-        Some(val) => {
-            output_file.write_all(&i64::from(1).to_ne_bytes())?;
-            output_file.write_all(&(val.len() as i64).to_ne_bytes())?;
-            output_file.write_all(val.into_bytes().as_slice())?;
-        },
-        None => {
-            output_file.write_all(&i64::from(0).to_ne_bytes())?;
-        }
-    }
-    output_file.write_all(&(header.zaid.len() as i64).to_ne_bytes())?;
-    output_file.write_all(header.zaid.into_bytes().as_slice())?;
-    output_file.write_all(&header.atomic_mass_fraction.to_ne_bytes())?;
-    output_file.write_all(&header.kT.to_ne_bytes())?;
-
-    // Process each line into binary
-    for line_result in reader.lines() {
-        let line = line_result?;
-        // Split line into whitespace-separated tokens
-        for token in line.split_whitespace() {
-            // Try parsing as integer first
-            if let Ok(integer) = token.parse::<i64>() {
-                output_file.write_all(&integer.to_ne_bytes())?;
-            }
-            // Then try parsing as float
-            else if let Ok(float) = token.parse::<f64>() {
-                output_file.write_all(&float.to_ne_bytes())?;
-            } else {
-                return Err(format!("Invalid number format: '{}'", token).into());
-            }
-        }
-    }
-
-    Ok(output_path.to_string_lossy().into_owned())
 }
 
 // Read an int from ACE binary files
@@ -206,6 +143,7 @@ pub async fn get_parsed_binary_for_testing() -> AceIsotopeData {
     // the parsing of an actual ASCII ACE file.
     let mut data: std::sync::MutexGuard<'_, Option<AceIsotopeData>> = PARSED_ACE_BINARY_FILE.lock().unwrap();
     if data.is_none() {
+        // convert_ascii_to_binary(*TEST_ASCII_FILENAME);
         let start = std::time::SystemTime::now();
         let parsed_ace = AceIsotopeData::from_file(*TEST_BINARY_FILENAME).await.unwrap();
         println!(
@@ -221,6 +159,8 @@ pub async fn get_parsed_binary_for_testing() -> AceIsotopeData {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::ace::binary_format::convert_ascii_to_binary;
 
     #[test]
     fn test_is_ascii_file() {

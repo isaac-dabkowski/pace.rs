@@ -1,9 +1,11 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Read};
-use crate::ace::utils;
+use std::io::BufReader;
 
-#[derive(Clone)]
+use crate::ace::utils;
+use crate::ace::binary_format::BinaryMmap;
+
+#[derive(Clone, Debug)]
 pub struct AceHeader {
     pub zaid: String,
     pub szaid: Option<String>,
@@ -45,32 +47,42 @@ impl AceHeader {
         Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })
     }
 
-    pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
-        // Check if we have a SZAID
-        let szaid = if utils::read_int(reader) == 1 {
-            let szaid_len = utils::read_int(reader);
-            println!("{}", szaid_len);
-            let mut buffer = vec![0u8; szaid_len as usize];
-            reader.read_exact(&mut buffer)?;
-            Some(String::from_utf8(buffer).unwrap())
-        } else {
-            None
+    pub fn from_binary_file(mmap: &BinaryMmap) -> Result<Self, Box<dyn Error>> {
+        let header_bytes = mmap.header_bytes();
+        let mut offset = 0;
+        // Read SZAID (first 16 bytes)
+        let szaid_str = String::from_utf8(header_bytes[offset..offset + 16].trim_ascii_end().to_vec()).unwrap();
+        offset += 16;
+
+        let szaid = {
+            if szaid_str.is_empty() {
+                None
+            } else {
+                Some(szaid_str)
+            }
         };
 
-        // Deal with ZAID
-        let zaid_len = utils::read_int(reader);
-        let mut buffer = vec![0u8; zaid_len as usize];
-        reader.read_exact(&mut buffer)?;
-        let zaid = String::from_utf8(buffer).unwrap();
+        // Read ZAID (next 16 bytes)
+        let zaid = String::from_utf8(header_bytes[offset..offset + 16].trim_ascii_end().to_vec()).unwrap();
+        offset += 16;
 
-        // Handle atomic mass fraction
-        let atomic_mass_fraction = utils::read_float(reader);
-        // Handle kT
-        let kT = utils::read_float(reader);
+        // Read atomic mass fraction
+        let atomic_mass_fraction = f64::from_ne_bytes(header_bytes[offset..offset + 8].try_into().unwrap());
+        offset += 8;
+
+        // Read kT
+        let kT = f64::from_ne_bytes(header_bytes[offset..offset + 8].try_into().unwrap());
+
         // Calculate temperature in Kelvin
         let temperature = utils::compute_temperature_from_kT(kT);
 
-        Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })
+        Ok(Self {
+            zaid,
+            szaid,
+            atomic_mass_fraction,
+            kT,
+            temperature,
+        })
     }
 }
 

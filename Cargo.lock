@@ -823,6 +823,7 @@ dependencies = [
  "dashmap",
  "futures",
  "lazy_static",
+ "libc",
  "memmap2",
  "path-clean",
  "polars",

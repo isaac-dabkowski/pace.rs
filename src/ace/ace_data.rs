@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::ace::utils::is_ascii_file;
+use crate::ace::binary_format;
 use crate::ace::header::AceHeader;
 use crate::ace::arrays::{IzawPair, IzawArray, JxsArray, NxsArray};
 use crate::ace::blocks::DataBlocks;
@@ -28,7 +29,7 @@ impl AceIsotopeData {
             Ok(ace_data)
         } else {
             // Parse binary file
-            let ace_data = AceIsotopeData::from_binary_file(path).await?;
+            let ace_data = AceIsotopeData::from_binary_file(path)?;
             Ok(ace_data)
         }
     }
@@ -57,24 +58,24 @@ impl AceIsotopeData {
     }
 
     // Create an AceIsotopeData object from a binary file
-    pub async fn from_binary_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let file = File::open(path).map_err(|e| format!("Error opening ACE ASCII file: {}", e))?;
-        let mut reader = BufReader::new(file);
+    pub fn from_binary_file<P: AsRef<Path> + Clone>(path: P) -> Result<Self, Box<dyn Error>> {
+        // Create a memory map of the binary file
+        let mmap = binary_format::BinaryMmap::from_binary_file(path)?;
 
         // Process the header
-        let header = AceHeader::from_binary_file(&mut reader)?;
+        let header = AceHeader::from_binary_file(&mmap)?;
 
         // Process the IZAW array
-        let izaw_array = IzawArray::from_binary_file(&mut reader)?;
+        let izaw_array = IzawArray::from_binary_file(&mmap)?;
 
         // Process the NXS array
-        let nxs_array = NxsArray::from_binary_file(&mut reader)?;
+        let nxs_array = NxsArray::from_binary_file(&mmap)?;
 
         // Process the JXS array
-        let jxs_array = JxsArray::from_binary_file(&mut reader)?;
+        let jxs_array = JxsArray::from_binary_file(&mmap)?;
 
         // Process the blocks out of the XXS array
-        let data_blocks = DataBlocks::from_binary_file(&mut reader, &nxs_array, &jxs_array).await?;
+        let data_blocks = DataBlocks::from_binary_file(&mmap, &nxs_array, &jxs_array)?;
 
         Ok(Self { header, izaw_array, nxs_array, jxs_array, data_blocks})
     }

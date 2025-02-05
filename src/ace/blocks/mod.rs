@@ -5,7 +5,7 @@ mod mtr;
 mod lsig;
 mod sig;
 
-pub use block_types::{DataBlockType, DataBlock};
+pub use block_types::DataBlockType;
 pub use block_processor::DataBlocks;
 
 pub use esz::ESZ;

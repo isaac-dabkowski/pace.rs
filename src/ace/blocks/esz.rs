@@ -65,7 +65,6 @@ impl ESZ {
         let elastic_xs = data[3 * num_energy_points..4 * num_energy_points].to_vec();
         // Average heating numbers
         let average_heating_numbers = data[4 * num_energy_points..5 * num_energy_points].to_vec();
-
         Self {
             energy,
             total_xs,

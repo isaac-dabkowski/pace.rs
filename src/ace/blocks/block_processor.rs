@@ -2,20 +2,18 @@ use std::error::Error;
 use std::fs::File;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
-
 use strum::IntoEnumIterator;
 use rayon::prelude::*;
 
+use crate::ace::binary_format::BinaryMmap;
 use crate::ace::blocks::{
     DataBlockType,
-    DataBlock,
     ESZ,
     MTR,
     LSIG,
     SIG,
 };
 use crate::ace::arrays::{JxsArray, NxsArray};
-use crate::async_task_dag::{AsyncTaskDag, Task, TaskResults, GetTaskResult};
 
 #[derive(Clone, Debug, Default)]
 pub struct DataBlocks {
@@ -99,8 +97,8 @@ impl DataBlocks {
     }
 
     // Build a DAG for block processing based on what blocks are present
-    fn construct_dag(block_map: HashMap<DataBlockType, &[&str]>, nxs_array: &NxsArray) -> AsyncTaskDag<DataBlockType, DataBlock> {
-        let mut dag: AsyncTaskDag<DataBlockType, DataBlock> = AsyncTaskDag::new();
+    // fn construct_dag(block_map: HashMap<DataBlockType, &[&str]>, nxs_array: &NxsArray) -> AsyncTaskDag<DataBlockType, DataBlock> {
+    //     let mut dag: AsyncTaskDag<DataBlockType, DataBlock> = AsyncTaskDag::new();
     //     let nxs_array = nxs_array.clone();
 
     //     // Energy grid
@@ -160,29 +158,20 @@ impl DataBlocks {
     //     dag.add_task_dependency(mtr_task_id, sig_task_id).unwrap();
     //     dag.add_task_dependency(lsig_task_id, sig_task_id).unwrap();
 
-        dag
-    }
+    //     dag
+    // }
 
     // Create a new BlockProcessor from a binary XXS array, the NXS and JXS array are used to
     // determine the start and end locations of each block
-    pub async fn from_binary_file(reader: &mut BufReader<File>, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
-        // Read the entire XXS array into a vector
-        // Allocate a Vec<f64> for proper alignment
-        let num_f64 = nxs_array.xxs_len;
-        let mut xxs_array: Vec<f64> = vec![0.0; num_f64];
-
-        // Read the file into a byte slice, this will go out of scope at the end of the function
-        // but xxs_array will remain
-        let byte_slice = unsafe {
-            std::slice::from_raw_parts_mut(
-                xxs_array.as_mut_ptr() as *mut u8,
-                num_f64 * std::mem::size_of::<f64>(),
-            )
+    pub fn from_binary_file(mmap: &BinaryMmap, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
+        // Zero-copy Conversion to f64 from memory mapped file, we will parse these values back to
+        // integers where appropriate later
+        let xxs_array: &[f64] = unsafe {
+            std::slice::from_raw_parts(mmap.xxs_bytes().as_ptr() as *const f64, mmap.xxs_bytes().len() / 8)
         };
-        reader.read_exact(byte_slice)?;
 
         // Split XXS array into raw text correspoding to each block
-        let block_map = DataBlocks::split_binary_xxs_into_blocks(nxs_array, jxs_array, &xxs_array);
+        let block_map = DataBlocks::split_binary_xxs_into_blocks(nxs_array, jxs_array, xxs_array);
 
         let data_blocks = DataBlocks::execute_binary_in_serial(block_map, nxs_array);
 
@@ -218,21 +207,21 @@ impl DataBlocks {
         }
     }
 
-    // Construct DataBlocks from results of a DAG
-    fn from_dag_results(dag: AsyncTaskDag<DataBlockType, DataBlock>) -> Self {
-        let mut data_blocks = DataBlocks::default();
-        for result in dag.get_all_results().iter() {
-            let (block_type, block_value) = result.pair();
-            match (block_type, block_value) {
-                (DataBlockType::ESZ, DataBlock::ESZ(esz)) => data_blocks.ESZ = Some(esz.clone()),
-                (DataBlockType::MTR, DataBlock::MTR(mtr)) => data_blocks.MTR = Some(mtr.clone()),
-                (DataBlockType::LSIG, DataBlock::LSIG(lsig)) => data_blocks.LSIG = Some(lsig.clone()),
-                (DataBlockType::SIG, DataBlock::SIG(sig)) => data_blocks.SIG = Some(sig.clone()),
-                _ => println!("Block type {} has been processed but is not passed back onto DataBlocks!", block_type),
-            }
-        }
-        data_blocks
-    }
+    // // Construct DataBlocks from results of a DAG
+    // fn from_dag_results(dag: AsyncTaskDag<DataBlockType, DataBlock>) -> Self {
+    //     let mut data_blocks = DataBlocks::default();
+    //     for result in dag.get_all_results().iter() {
+    //         let (block_type, block_value) = result.pair();
+    //         match (block_type, block_value) {
+    //             (DataBlockType::ESZ, DataBlock::ESZ(esz)) => data_blocks.ESZ = Some(esz.clone()),
+    //             (DataBlockType::MTR, DataBlock::MTR(mtr)) => data_blocks.MTR = Some(mtr.clone()),
+    //             (DataBlockType::LSIG, DataBlock::LSIG(lsig)) => data_blocks.LSIG = Some(lsig.clone()),
+    //             (DataBlockType::SIG, DataBlock::SIG(sig)) => data_blocks.SIG = Some(sig.clone()),
+    //             _ => println!("Block type {} has been processed but is not passed back onto DataBlocks!", block_type),
+    //         }
+    //     }
+    //     data_blocks
+    // }
 
     // Does not construct a DAG
     fn execute_in_serial(block_map: HashMap<DataBlockType, &[&str]>, nxs_array: &NxsArray) -> Self {
