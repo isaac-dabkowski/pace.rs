@@ -1,8 +1,6 @@
 use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-use crate::ace::utils;
-use crate::ace::binary_format::BinaryMmap;
+
+use crate::ace::binary_format::AceBinaryMmap;
 
 // Indices for different values within NXS array.
 // See page 10 of the ACE format spec for a description.
@@ -40,60 +38,9 @@ pub struct NxsArray {
 }
 
 impl NxsArray {
-    pub fn from_ascii_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
-        // A NXS array consists of 2 lines, each with eight integers.
-        let nxs_array_text = utils::read_lines(reader, 2)?;
-
-        let nxs_array: Vec<usize> = nxs_array_text
-            .iter()
-            .flat_map(
-                |s| {
-                    s.split_whitespace() 
-                        .map(|num| num.parse::<usize>())
-                        .filter_map(Result::ok)
-                    }
-                )
-            .collect();
-
-        Ok(Self {
-            xxs_len: nxs_array[NxsIndex::XxsLen as usize],
-            za: nxs_array[NxsIndex::Za as usize],
-            nes: nxs_array[NxsIndex::Nes as usize],
-            ntr: nxs_array[NxsIndex::Ntr as usize],
-            nr: nxs_array[NxsIndex::Nr as usize],
-            ntrp: nxs_array[NxsIndex::Ntrp as usize],
-            ntype: nxs_array[NxsIndex::Ntype as usize],
-            npcr: nxs_array[NxsIndex::Npcr as usize],
-            s: nxs_array[NxsIndex::S as usize],
-            z: nxs_array[NxsIndex::Z as usize],
-            a: nxs_array[NxsIndex::A as usize],
-        })
-    }
-
-    // pub fn from_binary_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {
-    //     // A NXS array consists of 16 integers.
-    //     let nxs_array = utils::read_usizes(16, reader);
-
-    //     Ok(Self {
-    //         xxs_len: nxs_array[NxsIndex::XxsLen as usize],
-    //         za: nxs_array[NxsIndex::Za as usize],
-    //         nes: nxs_array[NxsIndex::Nes as usize],
-    //         ntr: nxs_array[NxsIndex::Ntr as usize],
-    //         nr: nxs_array[NxsIndex::Nr as usize],
-    //         ntrp: nxs_array[NxsIndex::Ntrp as usize],
-    //         ntype: nxs_array[NxsIndex::Ntype as usize],
-    //         npcr: nxs_array[NxsIndex::Npcr as usize],
-    //         s: nxs_array[NxsIndex::S as usize],
-    //         z: nxs_array[NxsIndex::Z as usize],
-    //         a: nxs_array[NxsIndex::A as usize],
-    //     })
-    // }
-
-    pub fn from_binary_file(mmap: &BinaryMmap) -> Result<Self, Box<dyn Error>> {
+    pub fn from_file(mmap: &AceBinaryMmap) -> Result<Self, Box<dyn Error>> {
         // Zero-copy Conversion to usize from memory mapped file
-        let nxs_array = unsafe { 
-            std::slice::from_raw_parts(mmap.nxs_bytes().as_ptr() as *const usize, mmap.nxs_bytes().len() / 8)
-        };
+        let nxs_array = mmap.nxs_array();
 
         Ok(Self {
             xxs_len: nxs_array[NxsIndex::XxsLen as usize],
@@ -127,40 +74,6 @@ impl NxsArray {
             11 => Some(self.a),
             _ => None
         }
-    }
-}
-
-#[cfg(test)]
-mod ascii_tests {
-    use super::*;
-
-    #[test]
-    fn test_nxs_parsing() {
-        // Simulate ACE NXS array
-        let nxs_text = concat!(
-            "    86843     5010      941       55       35       38        2        0\n",
-            "        0        5       10        0        0        0        0        0\n"
-        );
-        let mut reader = utils::create_reader_from_string(nxs_text);
-
-        // Parse the array
-        let nxs = NxsArray::from_ascii_file(&mut reader).expect("Failed to parse NXS array");
-
-        // Check fields
-        let expected_nxs = NxsArray {
-            xxs_len: 86843,
-            za: 5010,
-            nes: 941,
-            ntr: 55,
-            nr: 35,
-            ntrp: 38,
-            ntype: 2,
-            npcr: 0,
-            s: 0,
-            z: 5,
-            a: 10,
-        };
-        assert_eq!(nxs, expected_nxs);
     }
 }
 

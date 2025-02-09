@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::ace::utils;
-use crate::ace::binary_format::BinaryMmap;
+use crate::ace::binary_format::AceBinaryMmap;
 
 #[derive(Clone, Debug)]
 pub struct AceHeader {
@@ -47,7 +47,7 @@ impl AceHeader {
         Ok(Self { zaid, szaid, atomic_mass_fraction, kT, temperature })
     }
 
-    pub fn from_binary_file(mmap: &BinaryMmap) -> Result<Self, Box<dyn Error>> {
+    pub fn from_file(mmap: &AceBinaryMmap) -> Result<Self, Box<dyn Error>> {
         let header_bytes = mmap.header_bytes();
         let mut offset = 0;
         // Read SZAID (first 16 bytes)
@@ -87,6 +87,21 @@ impl AceHeader {
 }
 
 #[cfg(test)]
+mod tests {
+    use crate::ace::utils::get_parsed_test_file;
+
+    #[tokio::test]
+    async fn test_header_parsing() {
+        let parsed_ace = get_parsed_test_file().await;
+        assert_eq!(parsed_ace.header.szaid, Some(String::from("1100.800nc")));
+        assert_eq!(parsed_ace.header.zaid, String::from("1100.00c"));
+        assert_eq!(parsed_ace.header.atomic_mass_fraction, 99.999);
+        assert_eq!(parsed_ace.header.kT, 2.5301e-08);
+        assert_eq!(parsed_ace.header.temperature, 293.6059129982851);
+    }
+}
+
+#[cfg(test)]
 mod ascii_tests {
     use super::*;
 
@@ -94,10 +109,10 @@ mod ascii_tests {
     fn test_2_0_1_header_parsing() {
         // Simulate ACE file content for the ">2.0.0" header format
         let header_2_0_1 = concat!(
-            "2.0.1                    6012.800nc         ENDF/B-VIII.0\n",
-            "   11.893650   2.5301e-08 2018-05-02    2\n",
-            "  6012.00c   11.893650  2.5301E-08   05/02/18\n",
-            "C12 Lib80x (jlconlin)  Reference LA-UR-18-24034 by Conlin, J.L., et al.  mat 625\n",
+            "2.0.1                    1100.800nc         ENDF/B-VIII.0\n",
+            "    99.999   2.5301e-08 2025-02-05    2\n",
+            "  1100.00c    99.999  2.5301E-08   05/02/18\n",
+            "H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123\n"
         );
         let mut reader = utils::create_reader_from_string(header_2_0_1);
 
@@ -105,19 +120,19 @@ mod ascii_tests {
         let header = AceHeader::from_ascii_file(&mut reader).expect("Failed to parse version >2.0.0 header");
 
         // Check fields
-        assert_eq!(header.zaid, "6012.00c");
-        assert_eq!(header.szaid, Some("6012.800nc".to_string()));
-        assert!((header.atomic_mass_fraction - 11.893650).abs() < 1e-6);
+        assert_eq!(header.zaid, "1100.00c");
+        assert_eq!(header.szaid, Some("1100.800nc".to_string()));
+        assert!((header.atomic_mass_fraction - 99.999).abs() < 1e-6);
         assert!((header.kT - 2.5301e-08).abs() < 1e-6);
-        assert!((header.temperature - utils::compute_temperature_from_kT(2.5301e-08)).abs() < 1e-6);
+        assert!((header.temperature - 293.605912998).abs() < 1e-6);
     }
 
     #[test]
     fn test_legacy_header_parsing() {
         // Simulate ACE file content for the legacy header format
         let legacy_header = concat!(
-            " 26054.00c   53.476240  2.5301E-08   05/01/18\n",
-            "Fe54 Lib80x (jlconlin)  Reference LA-UR-18-24034 by Conlin, J.L., et al. mat2625\n",
+            "  1100.00c    99.999  2.5301E-08   05/02/18\n",
+            "H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123\n"
         );
         let mut reader = utils::create_reader_from_string(legacy_header);
 
@@ -125,10 +140,10 @@ mod ascii_tests {
         let header = AceHeader::from_ascii_file(&mut reader).expect("Failed to parse legacy header");
 
         // Check fields
-        assert_eq!(header.zaid, "26054.00c");
+        assert_eq!(header.zaid, "1100.00c");
         assert_eq!(header.szaid, None);
-        assert!((header.atomic_mass_fraction - 53.476240).abs() < 1e-6);
+        assert!((header.atomic_mass_fraction - 99.999).abs() < 1e-6);
         assert!((header.kT - 2.5301e-08).abs() < 1e-6);
-        assert!((header.temperature - utils::compute_temperature_from_kT(2.5301e-08)).abs() < 1e-6);
+        assert!((header.temperature - 293.605912998).abs() < 1e-6);
     }
 }

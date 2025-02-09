@@ -1,3 +1,9 @@
+use std::{error::Error, fs::File, io::{BufRead, BufReader, Write}, path::Path};
+
+use memmap2::MmapOptions;
+
+use crate::ace::header::AceHeader;
+
 // This file contains the infrastructure to convert an ASCII ACE file into our own binary format.
 
 // The format as follows (from start of file to end):
@@ -15,12 +21,6 @@
 //    - XXS array
 //        - Faithfully recreated 1:1 to ASCII file (sans whitespace) using i64s or f64s where appropriate.
 
-use std::{error::Error, fs::File, io::{BufRead, BufReader, Write}, path::Path};
-
-use memmap2::MmapOptions;
-
-use crate::ace::header::AceHeader;
-
 // This function converts an ASCII ACE file into a binary format
 pub fn convert_ascii_to_binary<P: AsRef<Path>>(input_path: P) -> Result<String, Box<dyn std::error::Error>> {
     // Open input file for reading
@@ -33,10 +33,11 @@ pub fn convert_ascii_to_binary<P: AsRef<Path>>(input_path: P) -> Result<String, 
 
     // Set the binary file name to the SZAID if it is available. Otherwise, set it to the ZAID.
     let output_filename = if let Some(ref val) = header.szaid {
-        Path::new(val)
+        String::from("binary_") + val
     } else {
-        Path::new(&header.zaid)
+        String::from("binary_") + &header.zaid
     };
+    let output_filename = Path::new(&output_filename);
     let output_path = input_path.as_ref()
         .parent()
         .unwrap()
@@ -90,43 +91,54 @@ pub fn convert_ascii_to_binary<P: AsRef<Path>>(input_path: P) -> Result<String, 
     Ok(output_path.to_string_lossy().into_owned())
 }
 
-pub struct BinaryMmap {
-    pub mmap: memmap2::Mmap,
-    // pub header_bytes: [u8; 48],
-    // pub izaw_bytes: [u8; 32 * 8],
-    // pub nxs_bytes: [u8; 16 * 8],
-    // pub jxs_bytes: [u8; 32 * 8],
-    // pub xxs_bytes: Vec<u8>,
-}
+pub struct AceBinaryMmap ( memmap2::Mmap );
 
-impl BinaryMmap {
-    pub fn from_binary_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+impl AceBinaryMmap {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         // Open up the binary file
         let file = File::open(path).map_err(|e| format!("Error opening ACE binary file: {}", e))?;
 
         // Create a memory map of the binary file
-        let mmap = unsafe { MmapOptions::new().map(&file)? };
-        Ok(Self { mmap })
+        let mmap = unsafe { MmapOptions::new().map(&file) }?;
+        Ok(Self(mmap))
     }
 
-    // Compute the XXS slice on-demand
+    // Pull the bytes corresponding to the header
     pub fn header_bytes(&self) -> &[u8] {
-        &self.mmap[0..48]
+        &self.0[0..48]
     }
-    // Compute the XXS slice on-demand
+
+    // Pull the bytes corresponding to the IZAW array
     pub fn izaw_bytes(&self) -> &[u8] {
-        &self.mmap[48..304]
+        &self.0[48..304]
     }
-    // Compute the XXS slice on-demand
-    pub fn nxs_bytes(&self) -> &[u8] {
-        &self.mmap[304..432]
+
+    // Pull the NXS array
+    pub fn nxs_array(&self) -> &[usize] {
+        // A JXS array consists of 16 integers
+        let nxs_array = &self.0[304..432];
+        // Zero-copy Conversion to usize
+        unsafe { 
+            std::slice::from_raw_parts(nxs_array.as_ptr() as *const usize, nxs_array.len() / 8)
+        }
     }
-    // Compute the XXS slice on-demand
-    pub fn jxs_bytes(&self) -> &[u8] {
-        &self.mmap[432..688]
+
+    // Pull the JXS array
+    pub fn jxs_array(&self) -> &[usize] {
+        // A JXS array consists of 32 integers.
+        let jxs_array = &self.0[432..688];
+        // Zero-copy Conversion to usize
+        unsafe { 
+            std::slice::from_raw_parts(jxs_array.as_ptr() as *const usize, jxs_array.len() / 8)
+        }
     }
-    // Compute the XXS slice on-demand
-    pub fn xxs_bytes(&self) -> &[u8] {
-        &self.mmap[688..]
+
+    // Pull the XXS array, interpreted as f64
+    pub fn xxs_array(&self) -> &[f64] {
+        let xxs_array_bytes = &self.0[688..];
+        // Zero-copy Conversion to f64
+        unsafe {
+            std::slice::from_raw_parts(xxs_array_bytes.as_ptr() as *const f64, xxs_array_bytes.len() / 8)
+        }
     }
 }

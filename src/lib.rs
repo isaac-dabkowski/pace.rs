@@ -4,6 +4,5 @@ mod isotope;
 mod helpers;
 mod ace;
 mod endf;
-mod async_task_dag;
 
 pub use ace::AceIsotopeData;

@@ -86,6 +86,7 @@ pub fn reaction_type_from_MT(mt: usize) -> String {
     }
 }
 
+// Helper function which maps MT values to their corresponding reaction and a description of the reaction
 pub fn reaction_type_from_MT_with_comment(mt: usize) -> (String, String) {
     match mt {
         1 => ("(n,total)".to_string(), "incident neutrons only (sum over MTs 2, 4, 5, 11, 16-18, 22-26, 28-37, 41-43, 44-45, 102-117)".to_string()),
@@ -171,6 +172,7 @@ pub fn reaction_type_from_MT_with_comment(mt: usize) -> (String, String) {
     }
 }
 
+// Helper function which return the incident and outgoing particles for an MT value
 pub fn reaction_particles(mt: usize) -> (String, String) {
     let reaction_description = reaction_type_from_MT(mt);
     // Special cases
@@ -183,4 +185,134 @@ pub fn reaction_particles(mt: usize) -> (String, String) {
         let outgoing_particle = reaction_description.split(",").nth(1).unwrap().trim_end_matches(")").to_string();
         (incident_particle, outgoing_particle)
     }
+}
+
+// Helper function which returns the element symbol for a given Z value
+pub fn element_from_Z(Z: usize) -> String {
+    match Z {
+        1 => String::from("H"),
+        2 => String::from("He"),
+        3 => String::from("Li"),
+        4 => String::from("Be"),
+        5 => String::from("B"),
+        6 => String::from("C"),
+        7 => String::from("N"),
+        8 => String::from("O"),
+        9 => String::from("F"),
+        10 => String::from("Ne"),
+        11 => String::from("Na"),
+        12 => String::from("Mg"),
+        13 => String::from("Al"),
+        14 => String::from("Si"),
+        15 => String::from("P"),
+        16 => String::from("S"),
+        17 => String::from("Cl"),
+        18 => String::from("Ar"),
+        19 => String::from("K"),
+        20 => String::from("Ca"),
+        21 => String::from("Sc"),
+        22 => String::from("Ti"),
+        23 => String::from("V"),
+        24 => String::from("Cr"),
+        25 => String::from("Mn"),
+        26 => String::from("Fe"),
+        27 => String::from("Co"),
+        28 => String::from("Ni"),
+        29 => String::from("Cu"),
+        30 => String::from("Zn"),
+        31 => String::from("Ga"),
+        32 => String::from("Ge"),
+        33 => String::from("As"),
+        34 => String::from("Se"),
+        35 => String::from("Br"),
+        36 => String::from("Kr"),
+        37 => String::from("Rb"),
+        38 => String::from("Sr"),
+        39 => String::from("Y"),
+        40 => String::from("Zr"),
+        41 => String::from("Nb"),
+        42 => String::from("Mo"),
+        43 => String::from("Tc"),
+        44 => String::from("Ru"),
+        45 => String::from("Rh"),
+        46 => String::from("Pd"),
+        47 => String::from("Ag"),
+        48 => String::from("Cd"),
+        49 => String::from("In"),
+        50 => String::from("Sn"),
+        51 => String::from("Sb"),
+        52 => String::from("Te"),
+        53 => String::from("I"),
+        54 => String::from("Xe"),
+        55 => String::from("Cs"),
+        56 => String::from("Ba"),
+        57 => String::from("La"),
+        58 => String::from("Ce"),
+        59 => String::from("Pr"),
+        60 => String::from("Nd"),
+        61 => String::from("Pm"),
+        62 => String::from("Sm"),
+        63 => String::from("Eu"),
+        64 => String::from("Gd"),
+        65 => String::from("Tb"),
+        66 => String::from("Dy"),
+        67 => String::from("Ho"),
+        68 => String::from("Er"),
+        69 => String::from("Tm"),
+        70 => String::from("Yb"),
+        71 => String::from("Lu"),
+        72 => String::from("Hf"),
+        73 => String::from("Ta"),
+        74 => String::from("W"),
+        75 => String::from("Re"),
+        76 => String::from("Os"),
+        77 => String::from("Ir"),
+        78 => String::from("Pt"),
+        79 => String::from("Au"),
+        80 => String::from("Hg"),
+        81 => String::from("Tl"),
+        82 => String::from("Pb"),
+        83 => String::from("Bi"),
+        84 => String::from("Po"),
+        85 => String::from("At"),
+        86 => String::from("Rn"),
+        87 => String::from("Fr"),
+        88 => String::from("Ra"),
+        89 => String::from("Ac"),
+        90 => String::from("Th"),
+        91 => String::from("Pa"),
+        92 => String::from("U"),
+        93 => String::from("Np"),
+        94 => String::from("Pu"),
+        95 => String::from("Am"),
+        96 => String::from("Cm"),
+        97 => String::from("Bk"),
+        98 => String::from("Cf"),
+        99 => String::from("Es"),
+        100 => String::from("Fm"),
+        101 => String::from("Md"),
+        102 => String::from("No"),
+        103 => String::from("Lr"),
+        104 => String::from("Rf"),
+        105 => String::from("Db"),
+        106 => String::from("Sg"),
+        107 => String::from("Bh"),
+        108 => String::from("Hs"),
+        109 => String::from("Mt"),
+        110 => String::from("Ds"),
+        111 => String::from("Rg"),
+        112 => String::from("Cn"),
+        113 => String::from("Nh"),
+        114 => String::from("Fl"),
+        115 => String::from("Mc"),
+        116 => String::from("Lv"),
+        117 => String::from("Ts"),
+        118 => String::from("Og"),
+        _ => String::from("Unknown")
+    }
+}
+
+// Helper function which returns the element name for a given Z value
+pub fn isotope_name_from_Z_A(Z: usize, A: usize) -> String {
+    format!("{}-{}", element_from_Z(Z), A)
 }

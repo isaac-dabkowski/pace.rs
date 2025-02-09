@@ -10,16 +10,7 @@ pub struct MTR {
 }
 
 impl MTR {
-    pub fn process(text_data: &[&str]) -> Self {
-        let reaction_types: Vec<usize> = text_data
-            .iter()
-            .map(|val| val.parse().unwrap())
-            .collect();
-
-        Self { reaction_types }
-    }
-
-    pub fn process_binary(data: &[f64]) -> Self {
+    pub fn process(data: &[f64]) -> Self {
         let reaction_types: Vec<usize> = data
             .iter()
             .map(|val| val.to_bits() as usize)
@@ -28,18 +19,7 @@ impl MTR {
         Self { reaction_types }
     }
 
-    // Pull an MTR block from a XXS array
-    pub fn pull_from_ascii_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [&str]) -> &'a [&'a str] {
-        // Block start index
-        let block_start = jxs_array.get(&DataBlockType::MTR);
-        // Calculate the block end index, see the MTR description in the ACE spec
-        let num_reactions = nxs_array.ntr;
-        let block_end = block_start + num_reactions;
-        // Return the block
-        &xxs_array[block_start..block_end]
-    }
-
-    pub fn pull_from_binary_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::MTR) - 1;
         // Calculate the block end index, see the MTR description in the ACE spec
@@ -53,5 +33,19 @@ impl MTR {
 impl std::fmt::Display for MTR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MTR({} reactions)", self.reaction_types.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ace::utils::get_parsed_test_file;
+
+    #[tokio::test]
+    async fn test_mtr_parsing() {
+        let parsed_ace = get_parsed_test_file().await;
+
+        // Check contents
+        let mtr = parsed_ace.data_blocks.MTR.unwrap();
+        assert_eq!(mtr.reaction_types, vec![18]);
     }
 }
