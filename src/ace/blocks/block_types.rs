@@ -41,15 +41,6 @@ impl std::fmt::Display for DataBlockType {
     }
 }
 
-// // Enum for holding concrete processed blocks
-// #[derive(Debug, Clone)]
-// pub enum DataBlock {
-//     ESZ(blocks::ESZ),
-//     MTR(blocks::MTR),
-//     LSIG(blocks::LSIG),
-//     SIG(blocks::SIG),
-// }
-
 #[cfg(test)]
 mod tests {
     use std::hash::{DefaultHasher, Hash, Hasher};

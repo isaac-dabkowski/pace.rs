@@ -9,6 +9,7 @@ use crate::ace::blocks::{
     MTR,
     LSIG,
     SIG,
+    LQR,
 };
 use crate::ace::arrays::{JxsArray, NxsArray};
 
@@ -17,7 +18,8 @@ pub struct DataBlocks {
     pub ESZ: Option<ESZ>,
     pub MTR: Option<MTR>,
     pub LSIG: Option<LSIG>,
-    pub SIG: Option<SIG>
+    pub SIG: Option<SIG>,
+    pub LQR: Option<LQR>,
 }
 
 impl DataBlocks {
@@ -59,6 +61,7 @@ impl DataBlocks {
             DataBlockType::MTR => Some(MTR::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             DataBlockType::LSIG => Some(LSIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             DataBlockType::SIG => Some(SIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::LQR => Some(LQR::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             _ => {
                 // println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
                 None
@@ -84,11 +87,16 @@ impl DataBlocks {
         let sig_data = block_map.get(&DataBlockType::SIG).unwrap();
         let sig = SIG::process(sig_data, &mtr, &lsig, &esz);
 
+        // Q values
+        let lqr_data = block_map.get(&DataBlockType::LQR).unwrap();
+        let lqr = LQR::process(lqr_data, &mtr);
+
         Self {
             ESZ: Some(esz),
             MTR: Some(mtr),
             LSIG: Some(lsig),
             SIG: Some(sig),
+            LQR: Some(lqr),
         }
     }
 }
