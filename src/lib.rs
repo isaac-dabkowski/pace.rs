@@ -5,4 +5,4 @@ mod helpers;
 mod ace;
 mod endf;
 
-pub use ace::AceIsotopeData;
+pub use isotope::Isotope;

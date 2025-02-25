@@ -9,7 +9,7 @@ use std::time::Instant;
 use tempfile::tempfile;
 use lazy_static::lazy_static;
 
-use crate::AceIsotopeData;
+use crate::ace::ace_data::AceIsotopeData;
 use crate::ace::binary_format::convert_ascii_to_binary;
 
 // Checks if a file is ASCII by reading the first 1 kB of the file

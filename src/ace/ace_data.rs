@@ -183,6 +183,6 @@ mod tests {
     #[tokio::test]
     async fn test_name_parsing() {
         let parsed_ace = get_parsed_test_file().await;
-        assert_eq!(parsed_ace.name(), "H-100");
+        assert_eq!(parsed_ace.name(), "H100");
     }
 }

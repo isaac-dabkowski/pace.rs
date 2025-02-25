@@ -10,6 +10,9 @@ use crate::ace::blocks::{
     LSIG,
     SIG,
     LQR,
+    NU,
+    DNU,
+    BDD,
 };
 use crate::ace::arrays::{JxsArray, NxsArray};
 
@@ -20,6 +23,9 @@ pub struct DataBlocks {
     pub LSIG: Option<LSIG>,
     pub SIG: Option<SIG>,
     pub LQR: Option<LQR>,
+    pub NU: Option<NU>,
+    pub DNU: Option<DNU>,
+    pub BDD: Option<BDD>,
 }
 
 impl DataBlocks {
@@ -34,7 +40,7 @@ impl DataBlocks {
         let block_map = DataBlocks::split_xxs_into_blocks(nxs_array, jxs_array, xxs_array);
 
         // Process the data blocks
-        let data_blocks = DataBlocks::process_data_blocks(block_map, nxs_array);
+        let data_blocks = DataBlocks::process_data_blocks(block_map, nxs_array, jxs_array);
 
         Ok( data_blocks )
     }
@@ -62,6 +68,9 @@ impl DataBlocks {
             DataBlockType::LSIG => Some(LSIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             DataBlockType::SIG => Some(SIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             DataBlockType::LQR => Some(LQR::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::NU => Some(NU::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::DNU => Some(DNU::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
+            DataBlockType::BDD => Some(BDD::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
             _ => {
                 // println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
                 None
@@ -70,7 +79,10 @@ impl DataBlocks {
     }
 
     // Process data blocks from a binary ACE file
-    fn process_data_blocks(block_map: HashMap<DataBlockType, &[f64]>, nxs_array: &NxsArray) -> Self {
+    fn process_data_blocks(block_map: HashMap<DataBlockType, &[f64]>, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Self {
+        // -------------------------------
+        // Blocks which are always present
+        // -------------------------------
         // Energy grid
         let esz_data = block_map.get(&DataBlockType::ESZ).unwrap();
         let esz = ESZ::process(esz_data, nxs_array);
@@ -91,12 +103,34 @@ impl DataBlocks {
         let lqr_data = block_map.get(&DataBlockType::LQR).unwrap();
         let lqr = LQR::process(lqr_data, &mtr);
 
+        // ----------------
+        // Neutron emission
+        // ----------------
+        // NU values
+        let mut nu: Option<NU> = None;
+        if let Some(nu_data) = block_map.get(&DataBlockType::NU) {
+            nu = Some(NU::process(nu_data, jxs_array));
+        }
+        // DNU values
+        let mut dnu: Option<DNU> = None;
+        if let Some(dnu_data) = block_map.get(&DataBlockType::DNU) {
+            dnu = Some(DNU::process(dnu_data));
+        }
+        // BDD values
+        let mut bdd: Option<BDD> = None;
+        if let Some(bdd_data) = block_map.get(&DataBlockType::BDD) {
+            bdd = Some(BDD::process(bdd_data, nxs_array));
+        }
+
         Self {
             ESZ: Some(esz),
             MTR: Some(mtr),
             LSIG: Some(lsig),
             SIG: Some(sig),
             LQR: Some(lqr),
+            DNU: dnu,
+            NU: nu,
+            BDD: bdd,
         }
     }
 }

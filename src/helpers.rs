@@ -314,5 +314,5 @@ pub fn element_from_Z(Z: usize) -> String {
 
 // Helper function which returns the element name for a given Z value
 pub fn isotope_name_from_Z_A(Z: usize, A: usize) -> String {
-    format!("{}-{}", element_from_Z(Z), A)
+    format!("{}{}", element_from_Z(Z), A)
 }
