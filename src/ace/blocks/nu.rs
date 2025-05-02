@@ -1,5 +1,6 @@
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
+use crate::ace::blocks::block_traits::Process;
 
 // NU may be given in one of two forms: polynomial or tabulated
 #[derive(Debug, Clone)]
@@ -54,7 +55,44 @@ pub struct NU {
 }
 
 impl NU {
-    pub fn process(data: &[f64], jxs_array: &JxsArray) -> Self {
+    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+        // Block start index (binary XXS is zero indexed for speed)
+        let block_start = jxs_array.get(&DataBlockType::NU) - 1;
+
+        // Check if we have prompt and total or just one of the two
+        let prompt_and_or_total_flag = xxs_array[block_start].to_bits() as isize;
+        let first_nu_length = prompt_and_or_total_flag.unsigned_abs() + 1;
+        let mut block_length = first_nu_length;
+        // We have both blocks, so we need to check the length of the second block
+        if prompt_and_or_total_flag < 0 {
+            // Jump to start of total nu and check if it is polynomial or tabulated
+            let total_nu_poly_or_tabulated =  xxs_array[block_start + block_length].to_bits() as usize;
+            let total_nu_start = block_start + block_length + 1;
+            // We have a polynomial formulation for total nu
+            if total_nu_poly_or_tabulated == 1 {
+                block_length += 2 + xxs_array[total_nu_start].to_bits() as usize;
+            // We have a tabulated formulation for total nu
+            } else if total_nu_poly_or_tabulated == 2 {
+                block_length += 1 + InterpolationTable::get_table_length(total_nu_start, xxs_array);
+            } else {
+                panic!("Unknown total nu formulation");
+            }
+        }
+
+        // Avoid issues if this is the last block in the file
+        let mut block_end = block_start + block_length;
+        if block_end == xxs_array.len() + 1 {
+            block_end -= 1;
+        }
+        // Return the block
+        &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for NU {
+    type Dependencies = &'a JxsArray;
+
+    fn process(data: &[f64], jxs_array: &JxsArray) -> Self {
         // Grab first nu data
         let prompt_and_or_total_flag = data[0].to_bits() as isize;
         let first_nu_length = prompt_and_or_total_flag.unsigned_abs();
@@ -98,39 +136,6 @@ impl NU {
                 total: Some(prompt_or_total_nu)
             }
         }
-    }
-
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::NU) - 1;
-
-        // Check if we have prompt and total or just one of the two
-        let prompt_and_or_total_flag = xxs_array[block_start].to_bits() as isize;
-        let first_nu_length = prompt_and_or_total_flag.unsigned_abs() + 1;
-        let mut block_length = first_nu_length;
-        // We have both blocks, so we need to check the length of the second block
-        if prompt_and_or_total_flag < 0 {
-            // Jump to start of total nu and check if it is polynomial or tabulated
-            let total_nu_poly_or_tabulated =  xxs_array[block_start + block_length].to_bits() as usize;
-            let total_nu_start = block_start + block_length + 1;
-            // We have a polynomial formulation for total nu
-            if total_nu_poly_or_tabulated == 1 {
-                block_length += 2 + xxs_array[total_nu_start].to_bits() as usize;
-            // We have a tabulated formulation for total nu
-            } else if total_nu_poly_or_tabulated == 2 {
-                block_length += 1 + InterpolationTable::get_table_length(total_nu_start, xxs_array);
-            } else {
-                panic!("Unknown total nu formulation");
-            }
-        }
-
-        // Avoid issues if this is the last block in the file
-        let mut block_end = block_start + block_length;
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
     }
 }
 

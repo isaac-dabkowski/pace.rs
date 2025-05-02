@@ -2,6 +2,7 @@ use std::error::Error;
 
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
+use crate::ace::blocks::block_traits::Process;
 
 #[derive(Debug, Clone, Default)]
 pub struct DNU (InterpolationTable);
@@ -14,11 +15,6 @@ impl DNU {
 }
 
 impl DNU {
-    pub fn process(data: &[f64]) -> Self {
-        // Construct the interpolation table which describes probabilities for the precursor group
-        Self(InterpolationTable::process(&data[1..]))
-    }
-
     pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let mut block_length = 1;
@@ -32,6 +28,15 @@ impl DNU {
         }
         // Return the block
         &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for DNU {
+    type Dependencies = ();
+
+    fn process(data: &[f64], dependencies: ()) -> Self {
+        // Construct the interpolation table which describes probabilities for the precursor group
+        Self(InterpolationTable::process(&data[1..]))
     }
 }
 

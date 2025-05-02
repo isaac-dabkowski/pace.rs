@@ -2,6 +2,7 @@
 
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
+use crate::ace::blocks::block_traits::Process;
 
 #[derive(Debug, Clone, Default)]
 pub struct BDD {
@@ -9,33 +10,7 @@ pub struct BDD {
     pub precursor_tables: Vec<InterpolationTable>
 }
 
-// impl BDD {
-//     // Evaluate the tabulated nu at an energy (given in MeV)
-//     pub fn evaluate(&self, energy: f64) -> f64 {
-//         self.table.interpolate(energy).unwrap()
-//     }
-// }
-
 impl BDD {
-    pub fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
-        let mut decay_constants = Vec::new();
-        let mut precursor_tables = Vec::new();
-
-        // Loop over all precursor groups
-        let mut offset = 0;
-        for _ in 0..nxs_array.npcr {
-            // Grab the decay constant
-            decay_constants.push(data[offset] * 1e8);
-            offset += 1;
-            // Construct the interpolation table which describes probabilities for the precursor group
-            let precursor_group_data_length = InterpolationTable::get_table_length(offset, data);
-            precursor_tables.push(InterpolationTable::process(&data[offset..offset+precursor_group_data_length]));
-            offset += precursor_group_data_length;
-        }
-
-        BDD {decay_constants, precursor_tables}
-    }
-
     pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         let mut block_length = 0;
 
@@ -57,6 +32,29 @@ impl BDD {
         }
         // Return the block
         &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for BDD {
+    type Dependencies = &'a NxsArray;
+
+    fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
+        let mut decay_constants = Vec::new();
+        let mut precursor_tables = Vec::new();
+
+        // Loop over all precursor groups
+        let mut offset = 0;
+        for _ in 0..nxs_array.npcr {
+            // Grab the decay constant
+            decay_constants.push(data[offset] * 1e8);
+            offset += 1;
+            // Construct the interpolation table which describes probabilities for the precursor group
+            let precursor_group_data_length = InterpolationTable::get_table_length(offset, data);
+            precursor_tables.push(InterpolationTable::process(&data[offset..offset+precursor_group_data_length]));
+            offset += precursor_group_data_length;
+        }
+
+        BDD {decay_constants, precursor_tables}
     }
 }
 

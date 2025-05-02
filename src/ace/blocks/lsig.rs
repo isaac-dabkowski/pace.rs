@@ -1,6 +1,7 @@
 // Represents the LSIG data block - contains locations of incident neutron cross section values.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
+use crate::ace::blocks::block_traits::Process;
 
 // See page 16 of the ACE format spec for a description of the LSIG block
 #[derive(Debug, Clone, PartialEq)]
@@ -9,15 +10,6 @@ pub struct LSIG {
 }
 
 impl LSIG {
-    pub fn process(data: &[f64]) -> Self {
-        let xs_locs: Vec<usize> = data
-            .iter()
-            .map(|val| val.to_bits() as usize)
-            .collect();
-
-        Self { xs_locs }
-    }
-
     pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::LSIG) - 1;
@@ -30,6 +22,19 @@ impl LSIG {
         }
         // Return the block
         &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for LSIG {
+    type Dependencies = ();
+
+    fn process(data: &[f64], dependencies: ()) -> Self {
+        let xs_locs: Vec<usize> = data
+            .iter()
+            .map(|val| val.to_bits() as usize)
+            .collect();
+
+        Self { xs_locs }
     }
 }
 

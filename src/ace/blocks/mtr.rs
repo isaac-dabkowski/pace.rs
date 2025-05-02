@@ -2,6 +2,7 @@
 // sections avaiable in the file.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
+use crate::ace::blocks::block_traits::Process;
 
 // See page 12 of the ACE format spec for a description of the MTR block
 #[derive(Debug, Clone, PartialEq)]
@@ -10,15 +11,6 @@ pub struct MTR {
 }
 
 impl MTR {
-    pub fn process(data: &[f64]) -> Self {
-        let reaction_types: Vec<usize> = data
-            .iter()
-            .map(|val| val.to_bits() as usize)
-            .collect();
-
-        Self { reaction_types }
-    }
-
     pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::MTR) - 1;
@@ -27,6 +19,19 @@ impl MTR {
         let block_end = block_start + num_reactions;
         // Return the block
         &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for MTR {
+    type Dependencies = ();
+
+    fn process(data: &[f64], dependencies: ()) -> Self {
+        let reaction_types: Vec<usize> = data
+            .iter()
+            .map(|val| val.to_bits() as usize)
+            .collect();
+
+        Self { reaction_types }
     }
 }
 

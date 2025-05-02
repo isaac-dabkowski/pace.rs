@@ -14,6 +14,7 @@ use crate::ace::blocks::{
     DNU,
     BDD,
 };
+use crate::ace::blocks::block_traits::Process;
 use crate::ace::arrays::{JxsArray, NxsArray};
 
 #[derive(Clone, Debug, Default)]
@@ -85,49 +86,64 @@ impl DataBlocks {
         // -------------------------------
         // Energy grid
         let esz_data = block_map.get(&DataBlockType::ESZ).unwrap();
-        let esz = ESZ::process(esz_data, nxs_array);
+        let esz = Some(ESZ::process(esz_data, nxs_array));
 
-        // Reaction MT values
-        let mtr_data = block_map.get(&DataBlockType::MTR).unwrap();
-        let mtr = MTR::process(mtr_data);
+        // -------------------------------------------
+        // Blocks present if isotope has reactions
+        // other than elastic scattering (NXS(4) != 0)
+        // -------------------------------------------
+        let (mtr, lqr, lsig, sig) = if nxs_array.ntr != 0 {
+            // Reaction MT values
+            let mtr_data = block_map.get(&DataBlockType::MTR).unwrap();
+            let mtr = MTR::process(mtr_data, ());
+            // Q values
+            let lqr_data = block_map.get(&DataBlockType::LQR).unwrap();
+            let lqr = LQR::process(lqr_data, &mtr);
+            // Cross section locations
+            let lsig_data = block_map.get(&DataBlockType::LSIG).unwrap();
+            let lsig = LSIG::process(lsig_data, ());
+            // Cross section values
+            let sig_data = block_map.get(&DataBlockType::SIG).unwrap();
+            let sig = SIG::process(sig_data, (&mtr, &lsig, esz.as_ref().unwrap()));
+            (
+                Some(mtr),
+                Some(lqr),
+                Some(lsig),
+                Some(sig),
+            )
+        } else {
+            (None, None, None, None)
+        };
 
-        // Cross section locations
-        let lsig_data = block_map.get(&DataBlockType::LSIG).unwrap();
-        let lsig = LSIG::process(lsig_data);
-
-        // Cross section values
-        let sig_data = block_map.get(&DataBlockType::SIG).unwrap();
-        let sig = SIG::process(sig_data, &mtr, &lsig, &esz);
-
-        // Q values
-        let lqr_data = block_map.get(&DataBlockType::LQR).unwrap();
-        let lqr = LQR::process(lqr_data, &mtr);
-
-        // ----------------
-        // Neutron emission
-        // ----------------
-        // NU values
-        let mut nu: Option<NU> = None;
-        if let Some(nu_data) = block_map.get(&DataBlockType::NU) {
-            nu = Some(NU::process(nu_data, jxs_array));
-        }
-        // DNU values
-        let mut dnu: Option<DNU> = None;
-        if let Some(dnu_data) = block_map.get(&DataBlockType::DNU) {
-            dnu = Some(DNU::process(dnu_data));
-        }
-        // BDD values
-        let mut bdd: Option<BDD> = None;
-        if let Some(bdd_data) = block_map.get(&DataBlockType::BDD) {
-            bdd = Some(BDD::process(bdd_data, nxs_array));
-        }
+        // -------------------------------------------
+        // Blocks present if fission nu data is
+        // available (JXS(2) != 0)
+        // -------------------------------------------
+        let (nu, dnu, bdd) = if jxs_array.get(&DataBlockType::NU) != 0 {
+            // Fission nu values
+            let nu_data = block_map.get(&DataBlockType::NU).unwrap();
+            let nu = NU::process(nu_data, jxs_array);
+            // Fission dnu values
+            let dnu_data = block_map.get(&DataBlockType::DNU).unwrap();
+            let dnu = DNU::process(dnu_data, ());
+            // Fission bdd values
+            let bdd_data = block_map.get(&DataBlockType::BDD).unwrap();
+            let bdd = BDD::process(bdd_data, nxs_array);
+            (
+                Some(nu),
+                Some(dnu),
+                Some(bdd),
+            )
+        } else {
+            (None, None, None)
+        };
 
         Self {
-            ESZ: Some(esz),
-            MTR: Some(mtr),
-            LSIG: Some(lsig),
-            SIG: Some(sig),
-            LQR: Some(lqr),
+            ESZ: esz,
+            MTR: mtr,
+            LSIG: lsig,
+            SIG: sig,
+            LQR: lqr,
             DNU: dnu,
             NU: nu,
             BDD: bdd,

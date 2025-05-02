@@ -3,6 +3,7 @@ use std::collections::HashMap;
 // Represents the LQR data block - contains Q values for different reactions.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, MTR};
+use crate::ace::blocks::block_traits::Process;
 
 type MT = usize;
 
@@ -13,16 +14,6 @@ pub struct LQR {
 }
 
 impl LQR {
-    pub fn process(data: &[f64], mtr: &MTR) -> Self {
-        let q_vals: HashMap<MT, f64> = data
-            .iter()
-            .enumerate()
-            .map(|(i, &q)| (mtr.reaction_types[i], q))
-            .collect();
-
-        Self { q_vals }
-    }
-
     pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::LQR) - 1;
@@ -35,6 +26,20 @@ impl LQR {
         }
         // Return the block
         &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for LQR {
+    type Dependencies = &'a MTR;
+
+    fn process(data: &[f64], mtr: &MTR) -> Self {
+        let q_vals: HashMap<MT, f64> = data
+            .iter()
+            .enumerate()
+            .map(|(i, &q)| (mtr.reaction_types[i], q))
+            .collect();
+
+        Self { q_vals }
     }
 }
 

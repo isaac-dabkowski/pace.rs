@@ -2,6 +2,7 @@
 // basic cross sections.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
+use crate::ace::blocks::block_traits::Process;
 
 // See page 12 of the ACE format spec for a description of the ESZ block
 #[derive(Debug, Clone, PartialEq)]
@@ -14,7 +15,27 @@ pub struct ESZ {
 }
 
 impl ESZ {
-    pub fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
+    // Pull an ESZ block from a XXS array
+    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+        // Block start index (binary XXS is zero indexed for speed)
+        let block_start = jxs_array.get(&DataBlockType::ESZ) - 1;
+        // Calculate the block end index, see the ESZ description in the ACE spec
+        let num_energies = nxs_array.nes;
+        let block_length = 5 * num_energies;
+        let mut block_end = block_start + block_length;
+        // Avoid issues if this is the last block in the file
+        if block_end == xxs_array.len() + 1 {
+            block_end -= 1;
+        }
+        // Return the block
+        &xxs_array[block_start..block_end]
+    }
+}
+
+impl<'a> Process<'a> for ESZ {
+    type Dependencies = &'a NxsArray;
+
+    fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
         let num_energy_points = nxs_array.nes;
         // Energy grid
         let energy = data[0..num_energy_points].to_vec();
@@ -33,22 +54,6 @@ impl ESZ {
             elastic_xs,
             average_heating_numbers,
         }
-    }
-
-    // Pull an ESZ block from a XXS array
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::ESZ) - 1;
-        // Calculate the block end index, see the ESZ description in the ACE spec
-        let num_energies = nxs_array.nes;
-        let block_length = 5 * num_energies;
-        let mut block_end = block_start + block_length;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
     }
 }
 
