@@ -2,7 +2,7 @@
 // basic cross sections.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 // See page 12 of the ACE format spec for a description of the ESZ block
 #[derive(Debug, Clone, PartialEq)]
@@ -14,9 +14,9 @@ pub struct ESZ {
     pub average_heating_numbers: Vec<f64>,
 }
 
-impl ESZ {
+impl<'a> PullFromXXS<'a> for ESZ {
     // Pull an ESZ block from a XXS array
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::ESZ) - 1;
         // Calculate the block end index, see the ESZ description in the ACE spec

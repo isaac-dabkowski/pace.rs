@@ -14,7 +14,7 @@ use crate::ace::blocks::{
     DNU,
     BDD,
 };
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 use crate::ace::arrays::{JxsArray, NxsArray};
 
 #[derive(Clone, Debug, Default)]

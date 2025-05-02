@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 #[derive(Debug, Clone, Default)]
 pub struct DNU (InterpolationTable);
@@ -14,8 +14,8 @@ impl DNU {
     }
 }
 
-impl DNU {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for DNU {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let mut block_length = 1;
         let block_start = jxs_array.get(&DataBlockType::DNU) - 1;

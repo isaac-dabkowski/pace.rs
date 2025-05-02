@@ -1,6 +1,6 @@
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 // NU may be given in one of two forms: polynomial or tabulated
 #[derive(Debug, Clone)]
@@ -54,8 +54,8 @@ pub struct NU {
     pub total: Option<NuFormulation>,
 }
 
-impl NU {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for NU {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::NU) - 1;
 

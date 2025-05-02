@@ -3,7 +3,7 @@ use std::collections::HashMap;
 // Represents the LQR data block - contains Q values for different reactions.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, MTR};
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 type MT = usize;
 
@@ -13,8 +13,8 @@ pub struct LQR {
     pub q_vals: HashMap<MT, f64>
 }
 
-impl LQR {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for LQR {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::LQR) - 1;
         // Calculate the block end index, see the LQR description in the ACE spec

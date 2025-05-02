@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use crate::helpers::reaction_type_from_MT;
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
@@ -32,8 +32,8 @@ pub struct SIG {
     pub xs: CrossSectionMap
 }
 
-impl SIG {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for SIG {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::SIG) - 1;
 

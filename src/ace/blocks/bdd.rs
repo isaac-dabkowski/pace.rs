@@ -2,7 +2,7 @@
 
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 #[derive(Debug, Clone, Default)]
 pub struct BDD {
@@ -10,8 +10,8 @@ pub struct BDD {
     pub precursor_tables: Vec<InterpolationTable>
 }
 
-impl BDD {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for BDD {
+    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         let mut block_length = 0;
 
         // Block start index (binary XXS is zero indexed for speed)

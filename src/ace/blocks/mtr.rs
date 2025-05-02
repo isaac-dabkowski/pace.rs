@@ -2,7 +2,7 @@
 // sections avaiable in the file.
 use crate::ace::arrays::{NxsArray, JxsArray};
 use crate::ace::blocks::DataBlockType;
-use crate::ace::blocks::block_traits::Process;
+use crate::ace::blocks::block_traits::{PullFromXXS, Process};
 
 // See page 12 of the ACE format spec for a description of the MTR block
 #[derive(Debug, Clone, PartialEq)]
@@ -10,8 +10,8 @@ pub struct MTR {
     pub reaction_types: Vec<usize>
 }
 
-impl MTR {
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+impl<'a> PullFromXXS<'a> for MTR {
+     fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
         // Block start index (binary XXS is zero indexed for speed)
         let block_start = jxs_array.get(&DataBlockType::MTR) - 1;
         // Calculate the block end index, see the MTR description in the ACE spec
