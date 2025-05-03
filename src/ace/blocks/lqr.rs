@@ -2,12 +2,11 @@
 use std::collections::HashMap;
 
 use crate::ace::arrays::Arrays;
+use crate::ace::blocks::block_types::MT;
 use crate::ace::blocks::{DataBlockType, MTR};
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-type MT = usize;
-
-// See page 15 of the ACE format spec for a description of the LQR block
+// See of the ACE format spec for a description of the LQR block
 #[derive(Debug, Clone, PartialEq)]
 pub struct LQR {
     pub q_vals: HashMap<MT, f64>

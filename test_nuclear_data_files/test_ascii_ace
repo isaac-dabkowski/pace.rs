@@ -1,4 +1,4 @@
-// TEST ASCII ACE FILE - last updated 3/2/25
+// TEST ASCII ACE FILE - last updated 5/4/25
 //
 // Comments may be added by starting a line with "//"
 //
@@ -17,7 +17,7 @@
 //     - NU ✔
 //     - MTR ✔
 //     - LQR ✔
-//     - TYR
+//     - TYR ✔
 //     - LSIG ✔
 //     - SIG ✔
 //     - LAND
@@ -55,7 +55,7 @@ H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123
        91     1100        3        1        1        1        1        6
         0        1      100        0        0        0        0        0
 // JXS array
-        1       24       16       23        0       17       18        0
+        1       24       16       23       92       17       18        0
         0        0        0        0        0        0        0        0
         0        0        0        0        0        0        0       43
        50        0        0        0        0        0        0        0
@@ -95,3 +95,5 @@ H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123
    3.00000000000E+01   1.00000000000E-02   2.00000000000E-02   5.00000000000E-09
                    0                   2   1.00000000000E-11   3.00000000000E+01
    1.00000000000E-02   2.00000000000E-02
+//     TYR 92
+                  19

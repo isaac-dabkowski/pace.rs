@@ -3,7 +3,7 @@ use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-// See page 16 of the ACE format spec for a description of the LSIG block
+// See the ACE format spec for a description of the LSIG block
 #[derive(Debug, Clone, PartialEq)]
 pub struct LSIG {
     pub xs_locs: Vec<usize>

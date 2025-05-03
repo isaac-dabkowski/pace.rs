@@ -1,7 +1,5 @@
 use std::error::Error;
-use std::collections::HashMap;
 use std::time::Instant;
-use strum::IntoEnumIterator;
 
 use crate::ace::binary_format::AceBinaryMmap;
 use crate::ace::blocks::{
@@ -14,6 +12,7 @@ use crate::ace::blocks::{
     NU,
     DNU,
     BDD,
+    TYR,
 };
 use crate::ace::blocks::block_traits::Parse;
 use crate::ace::arrays::{Arrays, JxsArray, NxsArray, XxsArray};
@@ -28,6 +27,7 @@ pub struct DataBlocks {
     pub NU: Option<NU>,
     pub DNU: Option<DNU>,
     pub BDD: Option<BDD>,
+    pub TYR: Option<TYR>,
 }
 
 impl DataBlocks {
@@ -92,6 +92,13 @@ impl DataBlocks {
             "⚛️  SIG time ⚛️ : {} us",
             start.elapsed().as_micros()
         );
+        // Number of emitted secondary neutrons
+        start = Instant::now();
+        let tyr = TYR::parse(has_xs_other_than_elastic, &arrays, &mtr);
+        println!(
+            "⚛️  TYR time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
         // -------------------------------------------
         // Blocks present if fission nu data is
@@ -111,7 +118,7 @@ impl DataBlocks {
             "⚛️  DNU time ⚛️ : {} us",
             start.elapsed().as_micros()
         );
-        // Fission bdd values
+        // Fission precursor data values
         start = Instant::now();
         let bdd = BDD::parse(is_fissile, &arrays, ());
         println!(
@@ -129,6 +136,7 @@ impl DataBlocks {
                 DNU: dnu,
                 NU: nu,
                 BDD: bdd,
+                TYR: tyr,
             }
         )
     }

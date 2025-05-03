@@ -14,7 +14,7 @@ pub struct AceHeader {
     pub temperature: f64,
 }
 
-// See page 3 of the ACE Format specification \[1\] for a description of the possible
+// See the ACE Format specification \[1\] for a description of the possible
 // ACE header formats (>2.0.0 and legacy)
 impl AceHeader {
     pub fn from_ascii_file(reader: &mut BufReader<File>) -> Result<Self, Box<dyn Error>> {

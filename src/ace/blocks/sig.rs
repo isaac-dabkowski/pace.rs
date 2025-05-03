@@ -1,7 +1,7 @@
 // Represents the SIG data block - this contains incident neutron cross section data
 
 use std::sync::Mutex;
-// See page 17 of the ACE format spec for a description of the SIG block
+// See the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -9,10 +9,10 @@ use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
 use crate::ace::arrays::Arrays;
+use crate::ace::blocks::block_types::MT;
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
 
 #[derive(Debug, Clone)]

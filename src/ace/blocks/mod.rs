@@ -10,6 +10,7 @@ mod lqr;
 mod nu;
 mod dnu;
 mod bdd;
+mod tyr;
 
 
 pub use block_types::DataBlockType;
@@ -24,3 +25,4 @@ pub use lqr::LQR;
 pub use nu::NU;
 pub use dnu::DNU;
 pub use bdd::BDD;
+pub use tyr::TYR;

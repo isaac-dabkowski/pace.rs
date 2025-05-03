@@ -4,7 +4,7 @@ use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-// See page 12 of the ACE format spec for a description of the ESZ block
+// See the ACE format spec for a description of the ESZ block
 #[derive(Debug, Clone, PartialEq)]
 pub struct ESZ {
     pub energy: Vec<f64>,

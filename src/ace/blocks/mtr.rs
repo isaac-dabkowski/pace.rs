@@ -4,7 +4,7 @@ use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-// See page 12 of the ACE format spec for a description of the MTR block
+// See the ACE format spec for a description of the MTR block
 #[derive(Debug, Clone, PartialEq)]
 pub struct MTR {
     pub reaction_types: Vec<usize>
