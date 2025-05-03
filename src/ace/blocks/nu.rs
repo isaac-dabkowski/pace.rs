@@ -83,7 +83,7 @@ impl<'a> PullFromXXS<'a> for NU {
             } else if total_nu_poly_or_tabulated == 2 {
                 block_length += 1 + InterpolationTable::get_table_length(total_nu_start, arrays.xxs);
             } else {
-                panic!("Unknown total nu formulation");
+                panic!("Unknown total nu formulation, expected 1 or 2, got {}", total_nu_poly_or_tabulated);
             }
         }
 
@@ -95,7 +95,7 @@ impl<'a> PullFromXXS<'a> for NU {
 impl<'a> Process<'a> for NU {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, _dependencies: ()) -> Self {
         // Grab first nu data
         let prompt_and_or_total_flag = data[0].to_bits() as isize;
         let first_nu_length = prompt_and_or_total_flag.unsigned_abs();

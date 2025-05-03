@@ -3,7 +3,7 @@ use std::error::Error;
 use std::iter::zip;
 
 // Enum for possible interpolation schemes from ENDF standard
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum InterpolationScheme {
     Histogram = 1,
     LinLin = 2,
@@ -64,66 +64,60 @@ impl InterpolationTable {
         let num_interp_regions = data[0].to_bits() as usize;
 
         // If the number of regions is zero, this means we use linear-linear interpolation
-        let table = if num_interp_regions == 0 {
+        if num_interp_regions == 0 {
             let num_data_points = data[1].to_bits() as usize;
             let x_start = 2;
             let y_start = x_start + num_data_points;
-            let data_points = (0..num_data_points)
-                .map(|idx| XY {
-                    x: data[x_start + idx],
-                    y: data[y_start + idx],
-                })
-                .collect::<Vec<_>>();
+
+            let data_points = (0..num_data_points).map(|idx| XY {
+                x: data[x_start + idx],
+                y: data[y_start + idx],
+            });
+
             // Single region with linear-linear interpolation
-            InterpolationTable(vec![
-                InterpolationRegion {
-                    data: data_points,
-                    interpolation_scheme: InterpolationScheme::LinLin,
-                }
-            ])
+            return InterpolationTable(vec![InterpolationRegion {
+                data: data_points.collect(),
+                interpolation_scheme: InterpolationScheme::LinLin,
+            }]);
+        }
+
         // We have a list of interpolation parameters and schemes
-        } else {
-            // Split out raw data into interpolation bounds, regions, and xy data
-            let bounds_start = 1;
-            let schemes_start = bounds_start + num_interp_regions;
-            let schemes_end = schemes_start + num_interp_regions;
-            let num_data_points = data[schemes_end].to_bits() as usize;
-            let x_start = schemes_end + 1;
-            let y_start = x_start + num_data_points;
+        // Split out raw data into interpolation bounds, regions, and xy data
+        let bounds_start = 1;
+        let schemes_start = bounds_start + num_interp_regions;
+        let schemes_end = schemes_start + num_interp_regions;
+        let num_data_points = data[schemes_end].to_bits() as usize;
+        let x_start = schemes_end + 1;
+        let y_start = x_start + num_data_points;
 
-            // Bounds, convert to zero indexed for sanity
-            let bounds = [
-                vec![0_usize],
-                data[bounds_start..schemes_start].iter()
-                    .map(|&val| val.to_bits() as usize - 1)
-                    .collect::<Vec<_>>()
-            ].concat();
+        // Bounds, convert to zero-indexed for sanity
+        let bounds = std::iter::once(0)
+            .chain(data[bounds_start..schemes_start].iter().map(|&val| val.to_bits() as usize - 1));
 
-            // Schemes
-            let schemes = data[schemes_start..schemes_end].iter()
-                .map(|val| InterpolationScheme::from(val.to_bits() as usize))
-                .collect::<Vec<_>>();
+        // Schemes
+        let schemes = data[schemes_start..schemes_end]
+            .iter()
+            .map(|&val| InterpolationScheme::from(val.to_bits() as usize));
 
-            // Data points
-            let data_points = zip(data[x_start..y_start].iter(), data[y_start..].iter())
-                .map(|(x, y)| XY { x: *x, y: *y })
-                .collect::<Vec<_>>();
+        // Data points
+        let data_points = zip(
+            data[x_start..y_start].iter(), 
+            data[y_start..].iter()).map(|(x, y)| XY {
+                x: *x,
+                y: *y,
+                }
+        );
 
-            InterpolationTable(
-                (0..num_interp_regions)
-                    .map(|idx| {
-                        let start = bounds[idx];
-                        let end = bounds[idx + 1] + 1; // Inclusive
-                        let region_data: Vec<XY> = data_points[start..end].to_vec();
-                        InterpolationRegion {
-                            data: region_data,
-                            interpolation_scheme: schemes[idx].clone(),
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            )
-        };
-        table
+        // Create interpolation regions
+        let regions = bounds.clone().zip(bounds.skip(1)).zip(schemes).map(|((start, end), scheme)| {
+            let region_data = data_points.clone().skip(start).take(end - start + 1);
+            InterpolationRegion {
+                data: region_data.collect(),
+                interpolation_scheme: scheme,
+            }
+        });
+
+        InterpolationTable(regions.collect())
     }
 
     pub fn get_table_length(table_start: usize, array_containing_table: &[f64]) -> usize {

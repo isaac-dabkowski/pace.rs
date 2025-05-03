@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::collections::HashMap;
+use std::time::Instant;
 use strum::IntoEnumIterator;
 
 use crate::ace::binary_format::AceBinaryMmap;
@@ -52,32 +53,71 @@ impl DataBlocks {
         // Blocks which are always present
         // -------------------------------
         // Energy grid
+        let mut start = Instant::now();
         let esz = ESZ::parse(always_expected, &arrays, ());
+        println!(
+            "⚛️  ESZ time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
         // -------------------------------------------
         // Blocks present if isotope has reactions
         // other than elastic scattering (NXS(4) != 0)
         // -------------------------------------------
         // Reaction MT values
+        start = Instant::now();
         let mtr = MTR::parse(has_xs_other_than_elastic, &arrays, ());
+        println!(
+            "⚛️  MTR time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Q values
+        start = Instant::now();
         let lqr = LQR::parse(has_xs_other_than_elastic, &arrays, &mtr);
+        println!(
+            "⚛️  LQR time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Cross section locations
+        start = Instant::now();
         let lsig = LSIG::parse(has_xs_other_than_elastic, &arrays, ());
+        println!(
+            "⚛️  LSIG time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Cross section values
+        start = Instant::now();
         let sig = SIG::parse(has_xs_other_than_elastic, &arrays, (&mtr, &lsig, &esz));
-
+        println!(
+            "⚛️  SIG time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
         // -------------------------------------------
         // Blocks present if fission nu data is
         // available (JXS(2) != 0)
         // -------------------------------------------
         // Fission nu values
+        start = Instant::now();
         let nu = NU::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  NU time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Fission dnu values
+        start = Instant::now();
         let dnu = DNU::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  DNU time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Fission bdd values
+        start = Instant::now();
         let bdd = BDD::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  BDD time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
         Ok(
             Self {

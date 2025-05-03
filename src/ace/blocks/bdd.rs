@@ -40,7 +40,7 @@ impl<'a> PullFromXXS<'a> for BDD {
 impl<'a> Process<'a> for BDD {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, _dependencies: ()) -> Self {
         let mut decay_constants = Vec::new();
         let mut precursor_tables = Vec::new();
 
@@ -68,8 +68,6 @@ impl std::fmt::Display for BDD {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use crate::ace::utils::get_parsed_test_file;
 
     #[tokio::test]

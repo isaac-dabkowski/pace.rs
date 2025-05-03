@@ -34,7 +34,7 @@ impl<'a> PullFromXXS<'a> for MTR {
 impl<'a> Process<'a> for MTR {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, _arrays: &Arrays, _dependencies: ()) -> Self {
         let reaction_types: Vec<usize> = data
             .iter()
             .map(|val| val.to_bits() as usize)

@@ -592,26 +592,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nuclear_data"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dashmap",
- "fast-float",
- "futures",
- "lazy_static",
- "libc",
- "memmap2",
- "num_enum",
- "plotly",
- "rayon",
- "strum",
- "strum_macros",
- "tempfile",
- "tokio",
-]
-
-[[package]]
 name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -661,6 +641,26 @@ name = "once_cell"
 version = "1.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+
+[[package]]
+name = "pace-rs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "fast-float",
+ "futures",
+ "lazy_static",
+ "libc",
+ "memmap2",
+ "num_enum",
+ "plotly",
+ "rayon",
+ "strum",
+ "strum_macros",
+ "tempfile",
+ "tokio",
+]
 
 [[package]]
 name = "parking_lot"
@@ -1116,9 +1116,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.43.0"
+version = "1.44.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d61fa4ffa3de412bfea335c6ecff681de2b609ba3c77ef3e00e521813a9ed9e"
+checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
 dependencies = [
  "backtrace",
  "bytes",

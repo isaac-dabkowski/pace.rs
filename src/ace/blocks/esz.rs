@@ -37,7 +37,7 @@ impl<'a> PullFromXXS<'a> for ESZ {
 impl<'a> Process<'a> for ESZ {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, _dependencies: ()) -> Self {
         let num_energy_points = arrays.nxs.nes;
         // Energy grid
         let energy = data[0..num_energy_points].to_vec();

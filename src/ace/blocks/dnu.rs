@@ -37,7 +37,7 @@ impl<'a> PullFromXXS<'a> for DNU {
 impl<'a> Process<'a> for DNU {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, _arrays: &Arrays, _dependencies: ()) -> Self {
         // Construct the interpolation table which describes probabilities for the precursor group
         Self(InterpolationTable::process(&data[1..]))
     }
@@ -51,8 +51,6 @@ impl std::fmt::Display for DNU {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use crate::ace::utils::get_parsed_test_file;
 
     #[tokio::test]
