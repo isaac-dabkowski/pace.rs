@@ -1,9 +1,9 @@
+// Represents the LQR data block - contains Q values for different reactions.
 use std::collections::HashMap;
 
-// Represents the LQR data block - contains Q values for different reactions.
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, MTR};
-use crate::ace::blocks::block_traits::{PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
 
 type MT = usize;
 
@@ -14,29 +14,34 @@ pub struct LQR {
 }
 
 impl<'a> PullFromXXS<'a> for LQR {
-    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::LQR) - 1;
-        // Calculate the block end index, see the LQR description in the ACE spec
-        let num_reactions = nxs_array.ntr;
-        let mut block_end = block_start + num_reactions;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+        // If the block type's start index is non-zero, the block is present in the XXS array
+        // We expect LQR if NXS(4) (NTR) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::LQR,
+            arrays,
+            has_xs_other_than_elastic,
+            "LQR is expected if NXS(4) (NTR) != 0, but LQR was not found.".to_string(),
+        )?;
+
+        // Calculate the block length, see the LQR description in the ACE spec
+        let num_reactions = arrays.nxs.ntr;
+        let block_length = num_reactions;
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_vec(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for LQR {
-    type Dependencies = &'a MTR;
+    type Dependencies = &'a Option<MTR>;
 
-    fn process(data: &[f64], mtr: &MTR) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, mtr: &Option<MTR>) -> Self {
         let q_vals: HashMap<MT, f64> = data
             .iter()
             .enumerate()
-            .map(|(i, &q)| (mtr.reaction_types[i], q))
+            .map(|(i, &q)| (mtr.as_ref().unwrap().reaction_types[i], q))
             .collect();
 
         Self { q_vals }

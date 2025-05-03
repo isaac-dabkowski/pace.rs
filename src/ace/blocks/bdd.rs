@@ -1,8 +1,8 @@
 
 
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::{PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
 
 #[derive(Debug, Clone, Default)]
 pub struct BDD {
@@ -11,45 +11,47 @@ pub struct BDD {
 }
 
 impl<'a> PullFromXXS<'a> for BDD {
-    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
+    fn pull_from_xxs_array(is_fissile: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+        // We expect DNU if JXS(2) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::BDD,
+            arrays,
+            is_fissile,
+            "BDD is expected if JXS(2) != 0, but BDD was not found.".to_string(),
+        )?;
+
         let mut block_length = 0;
 
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::BDD) - 1;
         // Loop over all precursor groups
-        for _ in 0..nxs_array.npcr {
+        for _ in 0..arrays.nxs.npcr {
             // Account for the decay constant
             block_length += 1;
             // Get the length of the precursor group data
-            let precursor_group_data_length = InterpolationTable::get_table_length(block_start + block_length, xxs_array);
+            let precursor_group_data_length = InterpolationTable::get_table_length(block_start + block_length, arrays.xxs);
             block_length += precursor_group_data_length;
         }
 
-        // Avoid issues if this is the last block in the file
-        let mut block_end = block_start + block_length;
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
+        // Return the block's raw data as a vector
+        Some(block_range_to_vec(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for BDD {
-    type Dependencies = &'a NxsArray;
+    type Dependencies = ();
 
-    fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
         let mut decay_constants = Vec::new();
         let mut precursor_tables = Vec::new();
 
         // Loop over all precursor groups
         let mut offset = 0;
-        for _ in 0..nxs_array.npcr {
+        for _ in 0..arrays.nxs.npcr {
             // Grab the decay constant
             decay_constants.push(data[offset] * 1e8);
             offset += 1;
             // Construct the interpolation table which describes probabilities for the precursor group
-            let precursor_group_data_length = InterpolationTable::get_table_length(offset, data);
+            let precursor_group_data_length = InterpolationTable::get_table_length(offset, &data);
             precursor_tables.push(InterpolationTable::process(&data[offset..offset+precursor_group_data_length]));
             offset += precursor_group_data_length;
         }

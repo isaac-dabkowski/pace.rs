@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
-use crate::ace::blocks::block_traits::{PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
 
 type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
@@ -33,34 +33,41 @@ pub struct SIG {
 }
 
 impl<'a> PullFromXXS<'a> for SIG {
-    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::SIG) - 1;
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+        // If the block type's start index is non-zero, the block is present in the XXS array
+        // We expect SIG if NXS(4) (NTR) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::SIG,
+            arrays,
+            has_xs_other_than_elastic,
+            "SIG is expected if NXS(4) (NTR) != 0, but SIG was not found.".to_string(),
+        )?;
 
+        // Calculate the block length, see the SIG description in the ACE spec
         // Loop over the number of cross sections
-        let mut current_offset: usize = 1;
-        for _ in 0..nxs_array.ntr {
+        let mut block_length: usize = 1;
+        for _ in 0..arrays.nxs.ntr {
             // Get the number of energy points in the cross section
-            let num_entries = xxs_array[block_start + current_offset].to_bits() as usize;
+            let num_entries = arrays.xxs[block_start + block_length].to_bits() as usize;
             // Jump forward to the next cross section
-            current_offset += num_entries + 2;
+            block_length += num_entries + 2;
         }
-        // Calculate the block end index, see the SIG description in the ACE spec
-        let mut block_end = block_start + current_offset;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_vec(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for SIG {
-    type Dependencies = (&'a MTR, &'a LSIG, &'a ESZ);
+    type Dependencies = (&'a Option<MTR>, &'a Option<LSIG>, &'a Option<ESZ>);
 
-    fn process(data: &[f64], dependencies: (&MTR, &LSIG, &ESZ)) -> Self {
-        let (mtr, lsig, esz) = dependencies;
+    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Self {
+        let (mtr, lsig, esz) = (
+            dependencies.0.as_ref().unwrap(),
+            dependencies.1.as_ref().unwrap(),
+            dependencies.2.as_ref().unwrap(),
+        );
 
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
 

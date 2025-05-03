@@ -1,8 +1,8 @@
 // Represents the ESZ data block - this is the energy grid for our ACE file, along with several
 // basic cross sections.
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
-use crate::ace::blocks::block_traits::{PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
 
 // See page 12 of the ACE format spec for a description of the ESZ block
 #[derive(Debug, Clone, PartialEq)]
@@ -16,27 +16,29 @@ pub struct ESZ {
 
 impl<'a> PullFromXXS<'a> for ESZ {
     // Pull an ESZ block from a XXS array
-    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::ESZ) - 1;
-        // Calculate the block end index, see the ESZ description in the ACE spec
-        let num_energies = nxs_array.nes;
+    fn pull_from_xxs_array(always_expected: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::ESZ,
+            arrays,
+            always_expected,
+            "Every ACE file should have an ESZ block, but one was not found.".to_string(),
+        )?;
+
+        // Calculate the block length, see the ESZ description in the ACE spec
+        let num_energies = arrays.nxs.nes;
         let block_length = 5 * num_energies;
-        let mut block_end = block_start + block_length;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_vec(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for ESZ {
-    type Dependencies = &'a NxsArray;
+    type Dependencies = ();
 
-    fn process(data: &[f64], nxs_array: &NxsArray) -> Self {
-        let num_energy_points = nxs_array.nes;
+    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
+        let num_energy_points = arrays.nxs.nes;
         // Energy grid
         let energy = data[0..num_energy_points].to_vec();
         // Total cross section

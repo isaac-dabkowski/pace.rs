@@ -126,19 +126,19 @@ impl InterpolationTable {
         table
     }
 
-    pub fn get_table_length(table_start: usize, xxs_array: &[f64]) -> usize {
+    pub fn get_table_length(table_start: usize, array_containing_table: &[f64]) -> usize {
         let mut table_length = 0;
 
         // First, get the number of interpolation regions
-        let num_interp_regions = xxs_array[table_start].to_bits() as usize;
+        let num_interp_regions = array_containing_table[table_start].to_bits() as usize;
         // If the number of regions is zero, this means we use linear-linear interpolation
         if num_interp_regions == 0 {
-            let num_data_points_per_vec = xxs_array[table_start + 1].to_bits() as usize;
+            let num_data_points_per_vec = array_containing_table[table_start + 1].to_bits() as usize;
             table_length += 2 + 2 * num_data_points_per_vec;
         } else {
             // We have a list of interpolation parameters and schemes
             table_length += 1 + 2 * num_interp_regions;
-            let num_data_points_per_vec = xxs_array[table_start + table_length].to_bits() as usize;
+            let num_data_points_per_vec = array_containing_table[table_start + table_length].to_bits() as usize;
             table_length += 1 + 2 * num_data_points_per_vec;
         }
         table_length

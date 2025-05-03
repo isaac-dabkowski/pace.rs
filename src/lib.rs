@@ -3,6 +3,5 @@
 mod isotope;
 mod helpers;
 mod ace;
-mod endf;
 
 pub use isotope::Isotope;

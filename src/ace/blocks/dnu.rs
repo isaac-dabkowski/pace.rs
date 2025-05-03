@@ -1,8 +1,8 @@
 use std::error::Error;
 
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::{PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
 
 #[derive(Debug, Clone, Default)]
 pub struct DNU (InterpolationTable);
@@ -15,26 +15,29 @@ impl DNU {
 }
 
 impl<'a> PullFromXXS<'a> for DNU {
-    fn pull_from_xxs_array(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let mut block_length = 1;
-        let block_start = jxs_array.get(&DataBlockType::DNU) - 1;
-        block_length += InterpolationTable::get_table_length(block_start + block_length, xxs_array);
+    fn pull_from_xxs_array(is_fissile: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+        // We expect DNU if JXS(2) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::DNU,
+            arrays,
+            is_fissile,
+            "DNU is expected if JXS(2) != 0, but DNU was not found.".to_string(),
+        )?;
 
-        // Avoid issues if this is the last block in the file
-        let mut block_end = block_start + block_length;
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
+        // Calculate the block length, see the DNU description in the ACE spec
+        let mut block_length = 1;
+        block_length += InterpolationTable::get_table_length(block_start + block_length, arrays.xxs);
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_vec(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for DNU {
     type Dependencies = ();
 
-    fn process(data: &[f64], dependencies: ()) -> Self {
+    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: ()) -> Self {
         // Construct the interpolation table which describes probabilities for the precursor group
         Self(InterpolationTable::process(&data[1..]))
     }
