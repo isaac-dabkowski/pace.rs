@@ -90,7 +90,7 @@ lazy_static! {
 
     // For local testing
     pub static ref LOCAL_TEST_ACEISOTOPEDATA: Mutex<Option<AceIsotopeData>> = Mutex::new(None);
-    // pub static ref LOCAL_TEST_BINARY_FILENAME: &'static str = "test_files/binary_1001.800nc";
+    pub static ref LOCAL_TEST_ASCII_FILENAME: &'static str = "test_files/uranium_test_file";
     pub static ref LOCAL_TEST_BINARY_FILENAME: &'static str = "test_files/binary_92235.800nc";
 }
 
