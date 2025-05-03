@@ -1,7 +1,7 @@
 // Represents the LSIG data block - contains locations of incident neutron cross section values.
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
-use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 // See page 16 of the ACE format spec for a description of the LSIG block
 #[derive(Debug, Clone, PartialEq)]
@@ -10,7 +10,7 @@ pub struct LSIG {
 }
 
 impl<'a> PullFromXXS<'a> for LSIG {
-    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
         // If the block type's start index is non-zero, the block is present in the XXS array
         // We expect LSIG if NXS(4) (NTR) != 0
         // Validate that the block is there and get the start index
@@ -26,14 +26,14 @@ impl<'a> PullFromXXS<'a> for LSIG {
         let block_length = num_reactions;
 
         // Return the block's raw data as a vector
-        Some(block_range_to_vec(block_start, block_length, arrays))
+        Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for LSIG {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, _arrays: &Arrays, _dependencies: ()) -> Self {
+    fn process(data: &[f64], _arrays: &Arrays, _dependencies: ()) -> Self {
         let xs_locs: Vec<usize> = data
             .iter()
             .map(|val| val.to_bits() as usize)

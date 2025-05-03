@@ -1,6 +1,6 @@
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 // NU may be given in one of two forms: polynomial or tabulated
 #[derive(Debug, Clone)]
@@ -55,7 +55,7 @@ pub struct NU {
 }
 
 impl<'a> PullFromXXS<'a> for NU {
-    fn pull_from_xxs_array(is_fissile: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+    fn pull_from_xxs_array(is_fissile: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
         // If the block type's start index is non-zero, the block is present in the XXS array
         // We expect NU if JXS(2) != 0
         // Validate that the block is there and get the start index
@@ -88,14 +88,14 @@ impl<'a> PullFromXXS<'a> for NU {
         }
 
         // Return the block's raw data as a vector
-        Some(block_range_to_vec(block_start, block_length, arrays))
+        Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for NU {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, _dependencies: ()) -> Self {
+    fn process(data: &[f64], arrays: &Arrays, _dependencies: ()) -> Self {
         // Grab first nu data
         let prompt_and_or_total_flag = data[0].to_bits() as isize;
         let first_nu_length = prompt_and_or_total_flag.unsigned_abs();

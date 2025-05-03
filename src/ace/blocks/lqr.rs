@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, MTR};
-use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 type MT = usize;
 
@@ -14,7 +14,7 @@ pub struct LQR {
 }
 
 impl<'a> PullFromXXS<'a> for LQR {
-    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
         // If the block type's start index is non-zero, the block is present in the XXS array
         // We expect LQR if NXS(4) (NTR) != 0
         // Validate that the block is there and get the start index
@@ -30,14 +30,14 @@ impl<'a> PullFromXXS<'a> for LQR {
         let block_length = num_reactions;
 
         // Return the block's raw data as a vector
-        Some(block_range_to_vec(block_start, block_length, arrays))
+        Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for LQR {
     type Dependencies = &'a Option<MTR>;
 
-    fn process(data: Vec<f64>, arrays: &Arrays, mtr: &Option<MTR>) -> Self {
+    fn process(data: &[f64], arrays: &Arrays, mtr: &Option<MTR>) -> Self {
         let q_vals: HashMap<MT, f64> = data
             .iter()
             .enumerate()

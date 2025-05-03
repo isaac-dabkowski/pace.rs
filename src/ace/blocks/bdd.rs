@@ -2,7 +2,7 @@
 
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
-use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 #[derive(Debug, Clone, Default)]
 pub struct BDD {
@@ -11,7 +11,7 @@ pub struct BDD {
 }
 
 impl<'a> PullFromXXS<'a> for BDD {
-    fn pull_from_xxs_array(is_fissile: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+    fn pull_from_xxs_array(is_fissile: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
         // We expect DNU if JXS(2) != 0
         // Validate that the block is there and get the start index
         let block_start = get_block_start(
@@ -33,14 +33,14 @@ impl<'a> PullFromXXS<'a> for BDD {
         }
 
         // Return the block's raw data as a vector
-        Some(block_range_to_vec(block_start, block_length, arrays))
+        Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for BDD {
     type Dependencies = ();
 
-    fn process(data: Vec<f64>, arrays: &Arrays, _dependencies: ()) -> Self {
+    fn process(data: &[f64], arrays: &Arrays, _dependencies: ()) -> Self {
         let mut decay_constants = Vec::new();
         let mut precursor_tables = Vec::new();
 

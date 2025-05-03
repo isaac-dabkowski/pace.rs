@@ -3,13 +3,14 @@
 use std::sync::Mutex;
 // See page 17 of the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
+use std::time::Instant;
 
 use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
-use crate::ace::blocks::block_traits::{get_block_start, block_range_to_vec, PullFromXXS, Process};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
@@ -18,10 +19,10 @@ type CrossSectionMap = HashMap<MT, CrossSection>;
 pub struct CrossSection {
     pub mt: MT,
     pub energy: Vec<f64>,
-    pub xs_val: Vec<f64>
+    pub xs_val: Vec<f64>,
 }
 
-impl std::fmt::Display for CrossSection {
+impl<'a> std::fmt::Display for CrossSection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "CrossSection(MT={} {})", self.mt, reaction_type_from_MT(self.mt))
     }
@@ -33,7 +34,7 @@ pub struct SIG {
 }
 
 impl<'a> PullFromXXS<'a> for SIG {
-    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &Arrays) -> Option<Vec<f64>> {
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
         // If the block type's start index is non-zero, the block is present in the XXS array
         // We expect SIG if NXS(4) (NTR) != 0
         // Validate that the block is there and get the start index
@@ -55,14 +56,14 @@ impl<'a> PullFromXXS<'a> for SIG {
         }
 
         // Return the block's raw data as a vector
-        Some(block_range_to_vec(block_start, block_length, arrays))
+        Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
 
 impl<'a> Process<'a> for SIG {
     type Dependencies = (&'a Option<MTR>, &'a Option<LSIG>, &'a Option<ESZ>);
 
-    fn process(data: Vec<f64>, arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Self {
+    fn process(data: &[f64], _arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Self {
         let (mtr, lsig, esz) = (
             dependencies.0.as_ref().unwrap(),
             dependencies.1.as_ref().unwrap(),
@@ -79,9 +80,9 @@ impl<'a> Process<'a> for SIG {
             let num_xs_values: usize = data[*start_pos].to_bits() as usize;
 
             // Get the cross section values
-            let xs_val: Vec<f64> = data[start_pos + 1..start_pos + 1 + num_xs_values].to_vec();
+            let xs_val = data[start_pos + 1..start_pos + 1 + num_xs_values].to_vec();
             // Get the corresponding energy values
-            let energy: Vec<f64> = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
+            let energy = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
         
             // Lock the Mutex and insert into the CrossSectionMap
             let mut xs_lock = xs.lock().unwrap();
@@ -90,6 +91,30 @@ impl<'a> Process<'a> for SIG {
 
         Self {
             xs: xs.into_inner().unwrap(), // Access the final xs map
+        }
+    }
+}
+
+impl SIG {
+    pub fn parse(is_expected: bool, arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let mut start = Instant::now();
+        if let Some(data) = Self::pull_from_xxs_array(is_expected, arrays) {
+            println!(
+            "⚛️      pull time ⚛️ : {} us",
+            start.elapsed().as_micros()
+            );
+            start = Instant::now();
+            let result = Some(Self::process(data, arrays, dependencies));
+            println!(
+            "⚛️      process time ⚛️ : {} us",
+            start.elapsed().as_micros()
+            );
+            result
+        } else {
+            None
         }
     }
 }
