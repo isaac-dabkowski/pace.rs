@@ -3,12 +3,14 @@
 use std::sync::Mutex;
 // See page 17 of the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
+use std::time::Instant;
 
 use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
@@ -17,10 +19,10 @@ type CrossSectionMap = HashMap<MT, CrossSection>;
 pub struct CrossSection {
     pub mt: MT,
     pub energy: Vec<f64>,
-    pub xs_val: Vec<f64>
+    pub xs_val: Vec<f64>,
 }
 
-impl std::fmt::Display for CrossSection {
+impl<'a> std::fmt::Display for CrossSection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "CrossSection(MT={} {})", self.mt, reaction_type_from_MT(self.mt))
     }
@@ -31,8 +33,43 @@ pub struct SIG {
     pub xs: CrossSectionMap
 }
 
-impl SIG {
-    pub fn process(data: &[f64], mtr: &MTR, lsig: &LSIG, esz: &ESZ) -> Self {
+impl<'a> PullFromXXS<'a> for SIG {
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
+        // If the block type's start index is non-zero, the block is present in the XXS array
+        // We expect SIG if NXS(4) (NTR) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::SIG,
+            arrays,
+            has_xs_other_than_elastic,
+            "SIG is expected if NXS(4) (NTR) != 0, but SIG was not found.".to_string(),
+        )?;
+
+        // Calculate the block length, see the SIG description in the ACE spec
+        // Loop over the number of cross sections
+        let mut block_length: usize = 1;
+        for _ in 0..arrays.nxs.ntr {
+            // Get the number of energy points in the cross section
+            let num_entries = arrays.xxs[block_start + block_length].to_bits() as usize;
+            // Jump forward to the next cross section
+            block_length += num_entries + 2;
+        }
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_slice(block_start, block_length, arrays))
+    }
+}
+
+impl<'a> Process<'a> for SIG {
+    type Dependencies = (&'a Option<MTR>, &'a Option<LSIG>, &'a Option<ESZ>);
+
+    fn process(data: &[f64], _arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Self {
+        let (mtr, lsig, esz) = (
+            dependencies.0.as_ref().unwrap(),
+            dependencies.1.as_ref().unwrap(),
+            dependencies.2.as_ref().unwrap(),
+        );
+
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
 
         // Parallelize the loop over cross sections using par_iter()
@@ -43,9 +80,9 @@ impl SIG {
             let num_xs_values: usize = data[*start_pos].to_bits() as usize;
 
             // Get the cross section values
-            let xs_val: Vec<f64> = data[start_pos + 1..start_pos + 1 + num_xs_values].to_vec();
+            let xs_val = Vec::from(&data[start_pos + 1..start_pos + 1 + num_xs_values]);
             // Get the corresponding energy values
-            let energy: Vec<f64> = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
+            let energy = Vec::from(&esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)]);
         
             // Lock the Mutex and insert into the CrossSectionMap
             let mut xs_lock = xs.lock().unwrap();
@@ -55,28 +92,6 @@ impl SIG {
         Self {
             xs: xs.into_inner().unwrap(), // Access the final xs map
         }
-    }
-
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::SIG) - 1;
-
-        // Loop over the number of cross sections
-        let mut current_offset: usize = 1;
-        for _ in 0..nxs_array.ntr {
-            // Get the number of energy points in the cross section
-            let num_entries = xxs_array[block_start + current_offset].to_bits() as usize;
-            // Jump forward to the next cross section
-            current_offset += num_entries + 2;
-        }
-        // Calculate the block end index, see the SIG description in the ACE spec
-        let mut block_end = block_start + current_offset;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
     }
 }
 

@@ -1,10 +1,12 @@
 [package]
-name = "nuclear_data"
+name = "pace-rs"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.98"
 dashmap = "6.1.0"
+fast-float = "0.2.0"
 futures = "0.3.31"
 lazy_static = "1.5.0"
 libc = "0.2.169"
@@ -15,4 +17,7 @@ rayon = "1.10.0"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 tempfile = "3.15.0"
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
+
+[features]
+local = []

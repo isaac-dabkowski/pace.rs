@@ -112,7 +112,7 @@ impl AceIsotopeData {
 mod tests {
     use super::*;
 
-    use crate::ace::utils::{get_parsed_test_file, local_get_parsed_test_file};
+    use crate::ace::utils::get_parsed_test_file;
 
     #[tokio::test]
     async fn test_parse_test_file() {
@@ -120,8 +120,11 @@ mod tests {
     }
 
     // This test should only be run locally on a real ACE file
+    // turn this on with `cargo test --features local`
+    #[cfg(feature = "local")]
     #[tokio::test]
     async fn test_parse_local_test_file() {
+        use crate::ace::utils::local_get_parsed_test_file;
         local_get_parsed_test_file().await;
     }
 

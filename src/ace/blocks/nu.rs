@@ -1,5 +1,6 @@
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::{DataBlockType, InterpolationTable};
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 // NU may be given in one of two forms: polynomial or tabulated
 #[derive(Debug, Clone)]
@@ -53,8 +54,48 @@ pub struct NU {
     pub total: Option<NuFormulation>,
 }
 
-impl NU {
-    pub fn process(data: &[f64], jxs_array: &JxsArray) -> Self {
+impl<'a> PullFromXXS<'a> for NU {
+    fn pull_from_xxs_array(is_fissile: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
+        // If the block type's start index is non-zero, the block is present in the XXS array
+        // We expect NU if JXS(2) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::NU,
+            arrays,
+            is_fissile,
+            "NU is expected if JXS(2) != 0, but NU was not found.".to_string(),
+        )?;
+
+        // Calculate the block length, see the NU description in the ACE spec
+        // Check if we have prompt and total or just one of the two
+        let prompt_and_or_total_flag = arrays.xxs[block_start].to_bits() as isize;
+        let first_nu_length = prompt_and_or_total_flag.unsigned_abs() + 1;
+        let mut block_length = first_nu_length;
+        // We have both blocks, so we need to check the length of the second block
+        if prompt_and_or_total_flag < 0 {
+            // Jump to start of total nu and check if it is polynomial or tabulated
+            let total_nu_poly_or_tabulated =  arrays.xxs[block_start + block_length].to_bits() as usize;
+            let total_nu_start = block_start + block_length + 1;
+            // We have a polynomial formulation for total nu
+            if total_nu_poly_or_tabulated == 1 {
+                block_length += 2 + arrays.xxs[total_nu_start].to_bits() as usize;
+            // We have a tabulated formulation for total nu
+            } else if total_nu_poly_or_tabulated == 2 {
+                block_length += 1 + InterpolationTable::get_table_length(total_nu_start, arrays.xxs);
+            } else {
+                panic!("Unknown total nu formulation, expected 1 or 2, got {}", total_nu_poly_or_tabulated);
+            }
+        }
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_slice(block_start, block_length, arrays))
+    }
+}
+
+impl<'a> Process<'a> for NU {
+    type Dependencies = ();
+
+    fn process(data: &[f64], arrays: &Arrays, _dependencies: ()) -> Self {
         // Grab first nu data
         let prompt_and_or_total_flag = data[0].to_bits() as isize;
         let first_nu_length = prompt_and_or_total_flag.unsigned_abs();
@@ -87,7 +128,7 @@ impl NU {
                 total: Some(total_nu)
             }
         // We do not have both blocks
-        } else if jxs_array.get(&DataBlockType::DNU) != 0 {
+        } else if arrays.jxs.get(&DataBlockType::DNU) != 0 {
             NU {
                 prompt: Some(prompt_or_total_nu),
                 total: None
@@ -98,39 +139,6 @@ impl NU {
                 total: Some(prompt_or_total_nu)
             }
         }
-    }
-
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::NU) - 1;
-
-        // Check if we have prompt and total or just one of the two
-        let prompt_and_or_total_flag = xxs_array[block_start].to_bits() as isize;
-        let first_nu_length = prompt_and_or_total_flag.unsigned_abs() + 1;
-        let mut block_length = first_nu_length;
-        // We have both blocks, so we need to check the length of the second block
-        if prompt_and_or_total_flag < 0 {
-            // Jump to start of total nu and check if it is polynomial or tabulated
-            let total_nu_poly_or_tabulated =  xxs_array[block_start + block_length].to_bits() as usize;
-            let total_nu_start = block_start + block_length + 1;
-            // We have a polynomial formulation for total nu
-            if total_nu_poly_or_tabulated == 1 {
-                block_length += 2 + xxs_array[total_nu_start].to_bits() as usize;
-            // We have a tabulated formulation for total nu
-            } else if total_nu_poly_or_tabulated == 2 {
-                block_length += 1 + InterpolationTable::get_table_length(total_nu_start, xxs_array);
-            } else {
-                panic!("Unknown total nu formulation");
-            }
-        }
-
-        // Avoid issues if this is the last block in the file
-        let mut block_end = block_start + block_length;
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
     }
 }
 

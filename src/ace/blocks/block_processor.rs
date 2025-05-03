@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::collections::HashMap;
+use std::time::Instant;
 use strum::IntoEnumIterator;
 
 use crate::ace::binary_format::AceBinaryMmap;
@@ -14,7 +15,8 @@ use crate::ace::blocks::{
     DNU,
     BDD,
 };
-use crate::ace::arrays::{JxsArray, NxsArray};
+use crate::ace::blocks::block_traits::Parse;
+use crate::ace::arrays::{Arrays, JxsArray, NxsArray, XxsArray};
 
 #[derive(Clone, Debug, Default)]
 pub struct DataBlocks {
@@ -34,104 +36,101 @@ impl DataBlocks {
     pub fn from_file(mmap: &AceBinaryMmap, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
         // Recall that this array is returned as f64's, we will parse these values back to
         // integers where appropriate later
-        let xxs_array: &[f64] = mmap.xxs_array();
+        let xxs_array: &XxsArray = mmap.xxs_array();
 
-        // Split XXS array into raw text correspoding to each block
-        let block_map = DataBlocks::split_xxs_into_blocks(nxs_array, jxs_array, xxs_array);
+        // Construct our Arrays struct
+        let arrays = Arrays {
+            nxs: nxs_array,
+            jxs: jxs_array,
+            xxs: xxs_array,
+        };
 
-        // Process the data blocks
-        let data_blocks = DataBlocks::process_data_blocks(block_map, nxs_array, jxs_array);
-
-        Ok( data_blocks )
-    }
-
-    fn split_xxs_into_blocks<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> HashMap<DataBlockType, &'a [f64]> {
-        let mut block_map: HashMap<DataBlockType, &'a [f64]> = HashMap::default();
-        // Loop over all possible DataBlockTypes
-        for block_type in DataBlockType::iter() {
-            // If the block type's start index is non-zero, the block is present in the XXS array
-            let start_index = jxs_array.get(&block_type);
-            if start_index != 0 {
-                // Pull the block from the XXS array (if procedure to do so has been implemented)
-                if let Some(block_data) = DataBlocks::pull_block_from_xxs_array(&block_type, nxs_array, jxs_array, xxs_array) {
-                    block_map.insert(block_type, block_data);
-                }
-            }
-        }
-        block_map
-    }
-
-    fn pull_block_from_xxs_array<'a>(block_type: &DataBlockType, nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> Option<&'a [f64]> {
-        match block_type {
-            DataBlockType::ESZ => Some(ESZ::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::MTR => Some(MTR::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::LSIG => Some(LSIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::SIG => Some(SIG::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::LQR => Some(LQR::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::NU => Some(NU::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::DNU => Some(DNU::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            DataBlockType::BDD => Some(BDD::pull_from_xxs_array(nxs_array, jxs_array, xxs_array)),
-            _ => {
-                // println!("DataBlockType {} was found in XXS array, but its parsing has not been implemented yet!", block_type);
-                None
-            }
-        }
-    }
-
-    // Process data blocks from a binary ACE file
-    fn process_data_blocks(block_map: HashMap<DataBlockType, &[f64]>, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Self {
+        // Process the data blocks from the binary ACE file
+        let always_expected = true;
+        let has_xs_other_than_elastic = arrays.nxs.ntr != 0;
+        let is_fissile = arrays.jxs.get(&DataBlockType::NU) != 0;
         // -------------------------------
         // Blocks which are always present
         // -------------------------------
         // Energy grid
-        let esz_data = block_map.get(&DataBlockType::ESZ).unwrap();
-        let esz = ESZ::process(esz_data, nxs_array);
+        let mut start = Instant::now();
+        let esz = ESZ::parse(always_expected, &arrays, ());
+        println!(
+            "⚛️  ESZ time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
+        // -------------------------------------------
+        // Blocks present if isotope has reactions
+        // other than elastic scattering (NXS(4) != 0)
+        // -------------------------------------------
         // Reaction MT values
-        let mtr_data = block_map.get(&DataBlockType::MTR).unwrap();
-        let mtr = MTR::process(mtr_data);
-
-        // Cross section locations
-        let lsig_data = block_map.get(&DataBlockType::LSIG).unwrap();
-        let lsig = LSIG::process(lsig_data);
-
-        // Cross section values
-        let sig_data = block_map.get(&DataBlockType::SIG).unwrap();
-        let sig = SIG::process(sig_data, &mtr, &lsig, &esz);
-
+        start = Instant::now();
+        let mtr = MTR::parse(has_xs_other_than_elastic, &arrays, ());
+        println!(
+            "⚛️  MTR time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
         // Q values
-        let lqr_data = block_map.get(&DataBlockType::LQR).unwrap();
-        let lqr = LQR::process(lqr_data, &mtr);
+        start = Instant::now();
+        let lqr = LQR::parse(has_xs_other_than_elastic, &arrays, &mtr);
+        println!(
+            "⚛️  LQR time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+        // Cross section locations
+        start = Instant::now();
+        let lsig = LSIG::parse(has_xs_other_than_elastic, &arrays, ());
+        println!(
+            "⚛️  LSIG time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+        // Cross section values
+        start = Instant::now();
+        let sig = SIG::parse(has_xs_other_than_elastic, &arrays, (&mtr, &lsig, &esz));
+        println!(
+            "⚛️  SIG time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
-        // ----------------
-        // Neutron emission
-        // ----------------
-        // NU values
-        let mut nu: Option<NU> = None;
-        if let Some(nu_data) = block_map.get(&DataBlockType::NU) {
-            nu = Some(NU::process(nu_data, jxs_array));
-        }
-        // DNU values
-        let mut dnu: Option<DNU> = None;
-        if let Some(dnu_data) = block_map.get(&DataBlockType::DNU) {
-            dnu = Some(DNU::process(dnu_data));
-        }
-        // BDD values
-        let mut bdd: Option<BDD> = None;
-        if let Some(bdd_data) = block_map.get(&DataBlockType::BDD) {
-            bdd = Some(BDD::process(bdd_data, nxs_array));
-        }
+        // -------------------------------------------
+        // Blocks present if fission nu data is
+        // available (JXS(2) != 0)
+        // -------------------------------------------
+        // Fission nu values
+        start = Instant::now();
+        let nu = NU::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  NU time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+        // Fission dnu values
+        start = Instant::now();
+        let dnu = DNU::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  DNU time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+        // Fission bdd values
+        start = Instant::now();
+        let bdd = BDD::parse(is_fissile, &arrays, ());
+        println!(
+            "⚛️  BDD time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
 
-        Self {
-            ESZ: Some(esz),
-            MTR: Some(mtr),
-            LSIG: Some(lsig),
-            SIG: Some(sig),
-            LQR: Some(lqr),
-            DNU: dnu,
-            NU: nu,
-            BDD: bdd,
-        }
+        Ok(
+            Self {
+                ESZ: esz,
+                MTR: mtr,
+                LSIG: lsig,
+                SIG: sig,
+                LQR: lqr,
+                DNU: dnu,
+                NU: nu,
+                BDD: bdd,
+            }
+        )
     }
 }
 

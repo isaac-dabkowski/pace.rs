@@ -1,6 +1,7 @@
 // Represents the LSIG data block - contains locations of incident neutron cross section values.
-use crate::ace::arrays::{NxsArray, JxsArray};
+use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
+use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 // See page 16 of the ACE format spec for a description of the LSIG block
 #[derive(Debug, Clone, PartialEq)]
@@ -8,28 +9,37 @@ pub struct LSIG {
     pub xs_locs: Vec<usize>
 }
 
-impl LSIG {
-    pub fn process(data: &[f64]) -> Self {
+impl<'a> PullFromXXS<'a> for LSIG {
+    fn pull_from_xxs_array(has_xs_other_than_elastic: bool, arrays: &'a Arrays) -> Option<&'a [f64]> {
+        // If the block type's start index is non-zero, the block is present in the XXS array
+        // We expect LSIG if NXS(4) (NTR) != 0
+        // Validate that the block is there and get the start index
+        let block_start = get_block_start(
+            &DataBlockType::LSIG,
+            arrays,
+            has_xs_other_than_elastic,
+            "LSIG is expected if NXS(4) (NTR) != 0, but LSIG was not found.".to_string(),
+        )?;
+        
+        // Calculate the block length, see the LSIG description in the ACE spec
+        let num_reactions = arrays.nxs.ntr;
+        let block_length = num_reactions;
+
+        // Return the block's raw data as a vector
+        Some(block_range_to_slice(block_start, block_length, arrays))
+    }
+}
+
+impl<'a> Process<'a> for LSIG {
+    type Dependencies = ();
+
+    fn process(data: &[f64], _arrays: &Arrays, _dependencies: ()) -> Self {
         let xs_locs: Vec<usize> = data
             .iter()
             .map(|val| val.to_bits() as usize)
             .collect();
 
         Self { xs_locs }
-    }
-
-    pub fn pull_from_xxs_array<'a>(nxs_array: &NxsArray, jxs_array: &JxsArray, xxs_array: &'a [f64]) -> &'a [f64] {
-        // Block start index (binary XXS is zero indexed for speed)
-        let block_start = jxs_array.get(&DataBlockType::LSIG) - 1;
-        // Calculate the block end index, see the LSIG description in the ACE spec
-        let num_reactions = nxs_array.ntr;
-        let mut block_end = block_start + num_reactions;
-        // Avoid issues if this is the last block in the file
-        if block_end == xxs_array.len() + 1 {
-            block_end -= 1;
-        }
-        // Return the block
-        &xxs_array[block_start..block_end]
     }
 }
 

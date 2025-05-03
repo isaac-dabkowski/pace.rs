@@ -1,4 +1,5 @@
 mod block_types;
+mod block_traits;
 mod block_processor;
 mod interpolation_table;
 mod esz;
