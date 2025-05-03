@@ -80,9 +80,9 @@ impl<'a> Process<'a> for SIG {
             let num_xs_values: usize = data[*start_pos].to_bits() as usize;
 
             // Get the cross section values
-            let xs_val = data[start_pos + 1..start_pos + 1 + num_xs_values].to_vec();
+            let xs_val = Vec::from(&data[start_pos + 1..start_pos + 1 + num_xs_values]);
             // Get the corresponding energy values
-            let energy = esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)].to_vec();
+            let energy = Vec::from(&esz.energy[energy_start_index - 1..(energy_start_index - 1 + num_xs_values)]);
         
             // Lock the Mutex and insert into the CrossSectionMap
             let mut xs_lock = xs.lock().unwrap();
@@ -91,30 +91,6 @@ impl<'a> Process<'a> for SIG {
 
         Self {
             xs: xs.into_inner().unwrap(), // Access the final xs map
-        }
-    }
-}
-
-impl SIG {
-    pub fn parse(is_expected: bool, arrays: &Arrays, dependencies: (&Option<MTR>, &Option<LSIG>, &Option<ESZ>)) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        let mut start = Instant::now();
-        if let Some(data) = Self::pull_from_xxs_array(is_expected, arrays) {
-            println!(
-            "⚛️      pull time ⚛️ : {} us",
-            start.elapsed().as_micros()
-            );
-            start = Instant::now();
-            let result = Some(Self::process(data, arrays, dependencies));
-            println!(
-            "⚛️      process time ⚛️ : {} us",
-            start.elapsed().as_micros()
-            );
-            result
-        } else {
-            None
         }
     }
 }

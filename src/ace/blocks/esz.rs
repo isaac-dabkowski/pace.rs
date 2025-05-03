@@ -40,15 +40,15 @@ impl<'a> Process<'a> for ESZ {
     fn process(data: &[f64], arrays: &Arrays, _dependencies: ()) -> Self {
         let num_energy_points = arrays.nxs.nes;
         // Energy grid
-        let energy = data[0..num_energy_points].to_vec();
+        let energy = Vec::from(&data[0..num_energy_points]);
         // Total cross section
-        let total_xs = data[num_energy_points..2 * num_energy_points].to_vec();
+        let total_xs = Vec::from(&data[num_energy_points..2 * num_energy_points]);
         // Dissapearence cross section
-        let dissapearance_xs = data[2 * num_energy_points..3 * num_energy_points].to_vec();
+        let dissapearance_xs = Vec::from(&data[2 * num_energy_points..3 * num_energy_points]);
         // Elastic cross section
-        let elastic_xs = data[3 * num_energy_points..4 * num_energy_points].to_vec();
+        let elastic_xs = Vec::from(&data[3 * num_energy_points..4 * num_energy_points]);
         // Average heating numbers
-        let average_heating_numbers = data[4 * num_energy_points..5 * num_energy_points].to_vec();
+        let average_heating_numbers = Vec::from(&data[4 * num_energy_points..5 * num_energy_points]);
         Self {
             energy,
             total_xs,
