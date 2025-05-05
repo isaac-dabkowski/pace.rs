@@ -13,6 +13,8 @@ use crate::ace::blocks::{
     DNU,
     BDD,
     TYR,
+    LAND,
+    AND, // Ensure AND implements a trait for dynamic dispatch
 };
 use crate::ace::blocks::block_traits::Parse;
 use crate::ace::arrays::{Arrays, JxsArray, NxsArray, XxsArray};
@@ -28,6 +30,8 @@ pub struct DataBlocks {
     pub DNU: Option<DNU>,
     pub BDD: Option<BDD>,
     pub TYR: Option<TYR>,
+    pub LAND: Option<LAND>,
+    pub AND: Option<AND>,
 }
 
 impl DataBlocks {
@@ -92,7 +96,7 @@ impl DataBlocks {
             "⚛️  SIG time ⚛️ : {} us",
             start.elapsed().as_micros()
         );
-        // Number of emitted secondary neutrons
+        // Secondary neutron information
         start = Instant::now();
         let tyr = TYR::parse(has_xs_other_than_elastic, &arrays, &mtr);
         println!(
@@ -126,6 +130,24 @@ impl DataBlocks {
             start.elapsed().as_micros()
         );
 
+        // --------------------------------------------------------------------------------
+        // Blocks which are always present, but where having MTR makes them easier to parse
+        // --------------------------------------------------------------------------------
+        // Secondary neutron angular distribution locations
+        start = Instant::now();
+        let land = LAND::parse(always_expected, &arrays, &mtr);
+        println!(
+            "⚛️  LAND time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+        // Secondary neutron angular distributions
+        start = Instant::now();
+        let and = AND::parse(always_expected, &arrays, (&tyr, &land));
+        println!(
+            "⚛️  AND time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+
         Ok(
             Self {
                 ESZ: esz,
@@ -137,6 +159,8 @@ impl DataBlocks {
                 NU: nu,
                 BDD: bdd,
                 TYR: tyr,
+                LAND: land,
+                AND: and,
             }
         )
     }

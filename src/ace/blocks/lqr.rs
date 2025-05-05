@@ -28,7 +28,7 @@ impl<'a> PullFromXXS<'a> for LQR {
         let num_reactions = arrays.nxs.ntr;
         let block_length = num_reactions;
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }

@@ -3,7 +3,6 @@
 use std::sync::Mutex;
 // See the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
-use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -55,7 +54,7 @@ impl<'a> PullFromXXS<'a> for SIG {
             block_length += num_entries + 2;
         }
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }

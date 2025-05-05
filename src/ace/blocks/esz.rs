@@ -29,7 +29,7 @@ impl<'a> PullFromXXS<'a> for ESZ {
         let num_energies = arrays.nxs.nes;
         let block_length = 5 * num_energies;
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }

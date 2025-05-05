@@ -1,6 +1,7 @@
 // Represents the TYR data block - this information on neutron release for different reactions, as
 // well as the frame of reference (center of mass vs. laboratory) for the reactions.
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::block_types::MT;
@@ -69,8 +70,13 @@ impl From<isize> for ExitingNeutronData {
 
 // See the ACE format spec for a description of the TYR block
 #[derive(Debug, Clone, PartialEq)]
-pub struct TYR {
-    pub neutron_release: HashMap<MT, ExitingNeutronData>
+pub struct TYR ( pub HashMap<MT, ExitingNeutronData> );
+
+impl Deref for TYR {
+    type Target = HashMap<MT, ExitingNeutronData>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for TYR {
@@ -78,9 +84,6 @@ impl<'a> PullFromXXS<'a> for TYR {
         // If the block type's start index is non-zero, the block is present in the XXS array
         // We expect TYR if NXS(4) (NTR) != 0
         // Validate that the block is there and get the start index
-        println!("TYR: has_xs_other_than_elastic: {}", has_xs_other_than_elastic);
-        println!("TYR: NXS(4): {}", arrays.nxs.ntr);
-        println!("TYR start: {}", arrays.jxs.get(&DataBlockType::TYR));
         let block_start = get_block_start(
             &DataBlockType::TYR,
             arrays,
@@ -92,7 +95,7 @@ impl<'a> PullFromXXS<'a> for TYR {
         let num_reactions = arrays.nxs.ntr;
         let block_length = num_reactions;
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
@@ -113,20 +116,29 @@ impl<'a> Process<'a> for TYR {
             ))
             .collect();
 
-        Self { neutron_release }
+        Self(neutron_release)
+    }
+}
+
+impl<'a> TYR {
+    pub fn mt_values_with_neutron_release(&self) -> Vec<MT> {
+        self.iter()
+            .filter(|(_, exit_neutron_data)| exit_neutron_data.neutron_release != NumberOfExitingNeutrons::Absorption)
+            .map(|(mt, _)| *mt)
+            .collect()
     }
 }
 
 impl std::fmt::Display for TYR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TYR({} reactions)", self.neutron_release.len())
+        write!(f, "TYR({} reactions)", self.len())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ace::utils::get_parsed_test_file;
+    use crate::{ace::utils::get_parsed_test_file, helpers::MTNumber};
 
     #[tokio::test]
     async fn test_tyr_parsing() {
@@ -135,7 +147,7 @@ mod tests {
         // Check contents
         let tyr = parsed_ace.data_blocks.TYR.unwrap();
         assert_eq!(
-            tyr.neutron_release.get(&18),
+            tyr.get(&(MTNumber::Fission as usize)),
             Some(&ExitingNeutronData {
                 neutron_release: NumberOfExitingNeutrons::EnergyDependent,
                 frame_of_reference: ExitingNeutronFrameOfReference::Laboratory,

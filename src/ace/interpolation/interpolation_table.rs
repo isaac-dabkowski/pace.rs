@@ -2,48 +2,41 @@ use std::ops::{Deref, DerefMut};
 use std::error::Error;
 use std::iter::zip;
 
-// Enum for possible interpolation schemes from ENDF standard
-#[derive(Debug, Clone, Copy)]
-pub enum InterpolationScheme {
-    Histogram = 1,
-    LinLin = 2,
-    LinLog = 3,
-    LogLin = 4,
-    LogLog = 5,
-    Gamow = 6,
-}
-
-impl From<usize> for InterpolationScheme {
-    fn from(value: usize) -> Self {
-        match value {
-            1 => InterpolationScheme::Histogram,
-            2 => InterpolationScheme::LinLin,
-            3 => InterpolationScheme::LinLog,
-            4 => InterpolationScheme::LogLin,
-            5 => InterpolationScheme::LogLog,
-            6 => InterpolationScheme::Gamow,
-            _ => panic!("Invalid interpolation scheme"),
-        }
-    }
-}
+use crate::ace::interpolation::InterpolationScheme;
 
 // X/Y pair for interpolation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct XY {
     pub x: f64,
     pub y: f64,
 }
 
+impl Eq for XY {}
+
 // Interpolation region
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub struct InterpolationRegion {
     pub data: Vec<XY>,
     pub interpolation_scheme: InterpolationScheme,
 }
 
+impl InterpolationRegion {
+    pub fn from_x_and_y(x: Vec<f64>, y: Vec<f64>, interpolation_scheme: InterpolationScheme) -> Self {
+        // Ensure that the x and y vectors are of the same length
+        if x.len() != y.len() {
+            panic!("InterpolationRegion: x ({}) and y ({}) vectors must be of the same length", x.len(), y.len());
+        }
+
+        // Zip the x and y vectors together into a vector of XY structs
+        let data = x.into_iter().zip(y.into_iter()).map(|(x, y)| XY { x, y }).collect();
+
+        Self { data, interpolation_scheme }
+    }
+}
+
 // Struct for interpolation table data
-#[derive(Debug, Clone, Default)]
-pub struct InterpolationTable ( Vec<InterpolationRegion> );
+#[derive(Debug, Clone, Default, PartialEq, PartialOrd, Eq)]
+pub struct InterpolationTable ( pub Vec<InterpolationRegion> );
 
 impl Deref for InterpolationTable {
     type Target = Vec<InterpolationRegion>;
@@ -59,7 +52,20 @@ impl DerefMut for InterpolationTable {
 }
 
 impl InterpolationTable {
+    pub fn from_x_and_y(x: Vec<f64>, y: Vec<f64>, interpolation_scheme: InterpolationScheme) -> Self {
+        // This function creates a single region interpolation table from x and y vectors
+        // Ensure that the x and y vectors are of the same length
+        if x.len() != y.len() {
+            panic!("InterpolationTable: A single region interpolation table must have x ({}) and y ({}) vectors of equal length", x.len(), y.len());
+        }
+
+        Self(
+            vec![InterpolationRegion::from_x_and_y(x, y, interpolation_scheme)]
+        )
+    }
+
     pub fn process(data: &[f64]) -> Self {
+        // This function is meant to process an InteroilationTable from raw ACE input data
         // First, get the number of interpolation regions
         let num_interp_regions = data[0].to_bits() as usize;
 
@@ -69,16 +75,10 @@ impl InterpolationTable {
             let x_start = 2;
             let y_start = x_start + num_data_points;
 
-            let data_points = (0..num_data_points).map(|idx| XY {
-                x: data[x_start + idx],
-                y: data[y_start + idx],
-            });
+            let x = data[x_start..y_start].to_vec();
+            let y = data[y_start..y_start + num_data_points].to_vec();
 
-            // Single region with linear-linear interpolation
-            return InterpolationTable(vec![InterpolationRegion {
-                data: data_points.collect(),
-                interpolation_scheme: InterpolationScheme::LinLin,
-            }]);
+            return Self::from_x_and_y(x, y, InterpolationScheme::LinLin);
         }
 
         // We have a list of interpolation parameters and schemes
@@ -413,6 +413,33 @@ mod tests {
 
         let result = table.interpolate(0.5);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_region_instantiation() {
+        let x = vec![1.0, 2.0, 3.0];
+        let y = vec![2.0, 3.0, 4.0];
+        let region = InterpolationRegion::from_x_and_y(x.clone(), y.clone(), InterpolationScheme::LinLin);
+        assert_eq!(region.data.len(), x.len());
+        assert_eq!(region.interpolation_scheme, InterpolationScheme::LinLin);
+        for (i, xy) in region.data.iter().enumerate() {
+            assert_eq!(xy.x, x[i]);
+            assert_eq!(xy.y, y[i]);
+        }
+    }
+
+    #[test]
+    fn test_table_instantiation() {
+        let x = vec![1.0, 2.0, 3.0];
+        let y = vec![2.0, 3.0, 4.0];
+        let table = InterpolationTable::from_x_and_y(x.clone(), y.clone(), InterpolationScheme::LinLin);
+        assert_eq!(table.len(), 1);
+        assert_eq!(table[0].data.len(), x.len());
+        assert_eq!(table[0].interpolation_scheme, InterpolationScheme::LinLin);
+        for (i, xy) in table[0].data.iter().enumerate() {
+            assert_eq!(xy.x, x[i]);
+            assert_eq!(xy.y, y[i]);
+        }
     }
 
 }

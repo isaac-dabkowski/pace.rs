@@ -1,7 +1,6 @@
 mod block_types;
 mod block_traits;
 mod block_processor;
-mod interpolation_table;
 mod esz;
 mod mtr;
 mod lsig;
@@ -11,12 +10,13 @@ mod nu;
 mod dnu;
 mod bdd;
 mod tyr;
+mod land;
+mod and;
 
 
-pub use block_types::DataBlockType;
+pub use block_types::{DataBlockType, MT};
 pub use block_processor::DataBlocks;
 
-pub use interpolation_table::InterpolationTable;
 pub use esz::ESZ;
 pub use mtr::MTR;
 pub use lsig::LSIG;
@@ -26,3 +26,5 @@ pub use nu::NU;
 pub use dnu::DNU;
 pub use bdd::BDD;
 pub use tyr::TYR;
+pub use land::LAND;
+pub use and::AND;
