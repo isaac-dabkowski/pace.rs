@@ -1,5 +1,6 @@
 // Represents the LAND data block - contains locations of secondary neutron angular distribution.
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::block_types::MT;
@@ -9,8 +10,14 @@ use crate::helpers::MTNumber;
 
 // See the ACE format spec for a description of the LAND block
 #[derive(Debug, Clone, PartialEq)]
-pub struct LAND {
-    pub angular_distribution_locs: HashMap<MT, isize>
+pub struct LAND ( pub HashMap<MT, isize> );
+
+impl Deref for LAND {
+    type Target = HashMap<MT, isize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for LAND {
@@ -42,7 +49,7 @@ impl<'a> Process<'a> for LAND {
                 .iter()
                 .enumerate()
                 .map(|(i, &val)| (
-                    mtr.as_ref().unwrap().reaction_types[i],
+                    mtr.as_ref().unwrap()[i],
                     val.to_bits() as isize
                 ))
                 .collect()
@@ -53,7 +60,7 @@ impl<'a> Process<'a> for LAND {
         // We will always have an angular distribution for elastic scattering
         angular_distribution_locs.insert(MTNumber::ElasticScattering as usize, data[0].to_bits() as isize);
 
-        Self { angular_distribution_locs }
+        Self ( angular_distribution_locs )
     }
 }
 
@@ -64,7 +71,7 @@ impl LAND {
             // Get the reaction types with neutron release from the TYR block and remove
             // those which are shown in LAND as not having a distribution.
             for mt in tyr_block.keys() {
-                if let Some(&val) = self.angular_distribution_locs.get(mt) {
+                if let Some(&val) = self.get(mt) {
                     if val != -1 {
                         mt_vals.push(*mt);
                     }
@@ -79,7 +86,7 @@ impl LAND {
 
 impl std::fmt::Display for LAND {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LAND({} reactions)", self.angular_distribution_locs.len())
+        write!(f, "LAND({} reactions)", self.len())
     }
 }
 
@@ -93,7 +100,7 @@ mod tests {
 
         // Check contents
         let land = parsed_ace.data_blocks.LAND.unwrap();
-        assert_eq!(land.angular_distribution_locs.get(&(MTNumber::ElasticScattering as usize)), Some(&1));
-        assert_eq!(land.angular_distribution_locs.get(&(MTNumber::Fission as usize)), Some(&0));
+        assert_eq!(land.get(&(MTNumber::ElasticScattering as usize)), Some(&1));
+        assert_eq!(land.get(&(MTNumber::Fission as usize)), Some(&0));
     }
 }

@@ -122,7 +122,7 @@ impl<'a> Process<'a> for AND {
         // Loop over our different reactions with angular distribution data
         for mt in land.mt_values_with_distributions(tyr).iter() {
             // Get the index of the reaction in the AND block using the LAND block
-            let mt_index = land.angular_distribution_locs.get(mt).unwrap();
+            let mt_index = land.get(mt).unwrap();
 
             // If the index is 0, we have an isotropic distribution for all energies
             if mt_index == &0 {

@@ -1,5 +1,6 @@
 // Represents the SIG data block - this contains incident neutron cross section data
 
+use std::ops::Deref;
 use std::sync::Mutex;
 // See the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
@@ -28,8 +29,14 @@ impl<'a> std::fmt::Display for CrossSection {
 }
 
 #[derive(Debug, Clone)]
-pub struct SIG {
-    pub xs: CrossSectionMap
+pub struct SIG ( pub CrossSectionMap );
+
+impl Deref for SIG {
+    type Target = CrossSectionMap;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for SIG {
@@ -72,7 +79,7 @@ impl<'a> Process<'a> for SIG {
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
 
         // Parallelize the loop over cross sections using par_iter()
-        mtr.reaction_types.par_iter().zip(lsig.xs_locs.par_iter()).for_each(|(mt, start_pos)| {
+        mtr.par_iter().zip(lsig.par_iter()).for_each(|(mt, start_pos)| {
             // Get the first position in the energy grid where we have a cross section value
             let energy_start_index: usize = data[start_pos - 1].to_bits() as usize;
             // Get the number of entries we have for the cross section
@@ -88,15 +95,13 @@ impl<'a> Process<'a> for SIG {
             xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
         });
 
-        Self {
-            xs: xs.into_inner().unwrap(), // Access the final xs map
-        }
+        Self(xs.into_inner().unwrap())
     }
 }
 
 impl std::fmt::Display for SIG {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sorted_xs: Vec<CrossSection> = self.xs.values().cloned().collect();
+        let mut sorted_xs: Vec<CrossSection> = self.values().cloned().collect();
         sorted_xs.sort_by_key(|xs| xs.mt);
         let xs_string = sorted_xs.iter()
             .map(|xs| format!("{}", xs))
@@ -116,9 +121,9 @@ mod tests {
 
         // Check contents
         let sig = parsed_ace.data_blocks.SIG.unwrap();
-        assert!(sig.xs.contains_key(&18));
+        assert!(sig.contains_key(&18));
 
-        let fission_xs = sig.xs.get(&18).unwrap();
+        let fission_xs = sig.get(&18).unwrap();
         assert_eq!(fission_xs.energy.len(), 3);
         assert_eq!(fission_xs.xs_val.len(), fission_xs.energy.len());
         assert_eq!(fission_xs.energy, vec![1.0, 2.0, 3.0]);

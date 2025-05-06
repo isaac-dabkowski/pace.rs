@@ -108,7 +108,7 @@ impl<'a> Process<'a> for TYR {
             .iter()
             .enumerate()
             .map(|(i, &val)| (
-                mtr.as_ref().unwrap().reaction_types[i],
+                mtr.as_ref().unwrap()[i],
                 ExitingNeutronData {
                     neutron_release: NumberOfExitingNeutrons::from(val.to_bits() as isize),
                     frame_of_reference: ExitingNeutronFrameOfReference::from(val.to_bits() as isize),

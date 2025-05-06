@@ -1,5 +1,6 @@
 // Represents the LQR data block - contains Q values for different reactions.
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::block_types::MT;
@@ -8,8 +9,14 @@ use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, Pu
 
 // See of the ACE format spec for a description of the LQR block
 #[derive(Debug, Clone, PartialEq)]
-pub struct LQR {
-    pub q_vals: HashMap<MT, f64>
+pub struct LQR ( pub HashMap<MT, f64> );
+
+impl Deref for LQR {
+    type Target = HashMap<MT, f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for LQR {
@@ -37,19 +44,13 @@ impl<'a> Process<'a> for LQR {
     type Dependencies = &'a Option<MTR>;
 
     fn process(data: &[f64], arrays: &Arrays, mtr: &Option<MTR>) -> Self {
-        let q_vals: HashMap<MT, f64> = data
-            .iter()
-            .enumerate()
-            .map(|(i, &q)| (mtr.as_ref().unwrap().reaction_types[i], q))
-            .collect();
-
-        Self { q_vals }
+        Self(data.iter().enumerate().map(|(i, &q)| (mtr.as_ref().unwrap()[i], q)).collect())
     }
 }
 
 impl std::fmt::Display for LQR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LQR({} reactions)", self.q_vals.len())
+        write!(f, "LQR({} reactions)", self.len())
     }
 }
 
@@ -63,6 +64,6 @@ mod tests {
 
         // Check contents
         let lqr = parsed_ace.data_blocks.LQR.unwrap();
-        assert_eq!(lqr.q_vals[&18], 41.0);
+        assert_eq!(lqr[&18], 41.0);
     }
 }

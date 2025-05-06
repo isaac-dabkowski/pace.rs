@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 // Represents the MTR data block - this contains the MT numbers for the incident neutron cross
 // sections avaiable in the file.
 use crate::ace::arrays::Arrays;
@@ -6,8 +8,14 @@ use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, Pu
 
 // See the ACE format spec for a description of the MTR block
 #[derive(Debug, Clone, PartialEq)]
-pub struct MTR {
-    pub reaction_types: Vec<usize>
+pub struct MTR( pub Vec<usize> );
+
+impl Deref for MTR {
+    type Target = Vec<usize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for MTR {
@@ -35,18 +43,13 @@ impl<'a> Process<'a> for MTR {
     type Dependencies = ();
 
     fn process(data: &[f64], _arrays: &Arrays, _dependencies: ()) -> Self {
-        let reaction_types: Vec<usize> = data
-            .iter()
-            .map(|val| val.to_bits() as usize)
-            .collect();
-
-        Self { reaction_types }
+        Self(data.iter().map(|val| val.to_bits() as usize).collect())
     }
 }
 
 impl std::fmt::Display for MTR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MTR({} reactions)", self.reaction_types.len())
+        write!(f, "MTR({} reactions)", self.len())
     }
 }
 
@@ -60,6 +63,7 @@ mod tests {
 
         // Check contents
         let mtr = parsed_ace.data_blocks.MTR.unwrap();
-        assert_eq!(mtr.reaction_types, vec![18]);
+        assert_eq!(mtr.len(), 1);
+        assert_eq!(mtr[0], 18);
     }
 }
