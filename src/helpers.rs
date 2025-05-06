@@ -1,5 +1,16 @@
 #![allow(dead_code)]
 
+// Helper enum to represent commonly referenced cross section MT values
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MTNumber {
+    Total = 1,
+    ElasticScattering = 2,
+    Fission = 18,
+    NeutronAbsorption = 27,
+    Dissapearance = 101,
+    RadiativeCapture = 102,
+}
+
 // Helper function which maps MT values to their corresponding reaction
 pub fn reaction_type_from_MT(mt: usize) -> String {
     match mt {

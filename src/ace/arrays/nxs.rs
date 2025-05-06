@@ -3,7 +3,7 @@ use std::error::Error;
 use crate::ace::binary_format::AceBinaryMmap;
 
 // Indices for different values within NXS array.
-// See page 10 of the ACE format spec for a description.
+// See the ACE format spec for a description.
 #[derive(Debug)]
 enum NxsIndex {
     XxsLen = 0,
@@ -19,7 +19,7 @@ enum NxsIndex {
     A = 10,
 }
 
-// Represents the NXS array from an ACE file. See page 10 of the ACE format spec for a description.
+// Represents the NXS array from an ACE file. See the ACE format spec for a description.
 // The NXS array contains critical information on the structure of the main XXS data array to
 // follow.
 #[derive(Clone, Debug, PartialEq)]

@@ -3,5 +3,6 @@
 mod isotope;
 mod helpers;
 mod ace;
+mod unitf64;
 
 pub use isotope::Isotope;

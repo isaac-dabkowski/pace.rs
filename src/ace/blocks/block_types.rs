@@ -1,5 +1,8 @@
 use strum_macros::EnumIter;
 
+// The MT number is a unique identifier for each reaction type in the ACE file
+pub type MT = usize;
+
 // Enum of all block types in continuous neutron ACE file
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum DataBlockType {

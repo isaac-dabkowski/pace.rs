@@ -1,5 +1,6 @@
 use crate::ace::arrays::Arrays;
-use crate::ace::blocks::{DataBlockType, InterpolationTable};
+use crate::ace::interpolation::InterpolationTable;
+use crate::ace::blocks::DataBlockType;
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
 // NU may be given in one of two forms: polynomial or tabulated
@@ -87,7 +88,7 @@ impl<'a> PullFromXXS<'a> for NU {
             }
         }
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }

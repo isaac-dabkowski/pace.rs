@@ -207,38 +207,3 @@ impl AceBinaryMmap {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ascii_to_binary_conversion() {
-        use crate::ace::utils::TEST_ACE_ASCII_UNCOMMENTED;
-        use crate::ace::binary_format::convert_ascii_to_binary;
-
-        let start = std::time::SystemTime::now();
-        utils::uncomment_ace_test_file();
-        convert_ascii_to_binary(*TEST_ACE_ASCII_UNCOMMENTED).unwrap();
-        println!(
-            "⚛️  Time to convert custom ACE test file to binary ⚛️ : {} sec",
-            std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()
-        );
-    }
-
-    // // This test should only be run locally on a real ACE file
-    // // turn this on with `cargo test --features local`
-    // #[cfg(feature = "local")]
-    // #[test]
-    // fn test_local_ascii_to_binary_conversion() {
-    //     use crate::ace::utils::LOCAL_TEST_ACE_ASCII;
-    //     use crate::ace::binary_format::convert_ascii_to_binary;
-
-    //     let start = std::time::SystemTime::now();
-    //     convert_ascii_to_binary(*LOCAL_TEST_ACE_ASCII);
-    //     println!(
-    //         "⚛️  Time to convert local ACE file to binary ⚛️ : {} sec",
-    //         std::time::SystemTime::now().duration_since(start).unwrap().as_secs_f32()
-    //     );
-    // }
-}

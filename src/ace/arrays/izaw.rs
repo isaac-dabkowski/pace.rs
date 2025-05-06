@@ -15,7 +15,7 @@ impl IzawPair {
     }
 }
 
-// Represents the IZAW array from an ACE file. See page 4 of the ACE format spec for a description.
+// Represents the IZAW array from an ACE file. See the ACE format spec for a description.
 #[derive(Clone, Debug)]
 pub struct IzawArray {
     pub pairs: Vec<IzawPair>

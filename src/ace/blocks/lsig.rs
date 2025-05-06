@@ -1,12 +1,20 @@
+use std::ops::Deref;
+
 // Represents the LSIG data block - contains locations of incident neutron cross section values.
 use crate::ace::arrays::Arrays;
 use crate::ace::blocks::DataBlockType;
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-// See page 16 of the ACE format spec for a description of the LSIG block
+// See the ACE format spec for a description of the LSIG block
 #[derive(Debug, Clone, PartialEq)]
-pub struct LSIG {
-    pub xs_locs: Vec<usize>
+pub struct LSIG ( pub Vec<usize> );
+
+impl Deref for LSIG {
+    type Target = Vec<usize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for LSIG {
@@ -25,7 +33,7 @@ impl<'a> PullFromXXS<'a> for LSIG {
         let num_reactions = arrays.nxs.ntr;
         let block_length = num_reactions;
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
@@ -34,18 +42,13 @@ impl<'a> Process<'a> for LSIG {
     type Dependencies = ();
 
     fn process(data: &[f64], _arrays: &Arrays, _dependencies: ()) -> Self {
-        let xs_locs: Vec<usize> = data
-            .iter()
-            .map(|val| val.to_bits() as usize)
-            .collect();
-
-        Self { xs_locs }
+        Self(data.iter().map(|val| val.to_bits() as usize).collect())
     }
 }
 
 impl std::fmt::Display for LSIG {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LSIG({} xs)", self.xs_locs.len())
+        write!(f, "LSIG({} xs)", self.len())
     }
 }
 
@@ -59,6 +62,7 @@ mod tests {
 
         // Check contents
         let lsig = parsed_ace.data_blocks.LSIG.unwrap();
-        assert_eq!(lsig.xs_locs, vec![1]);
+        assert_eq!(lsig.len(), 1);
+        assert_eq!(lsig[0], 1);
     }
 }

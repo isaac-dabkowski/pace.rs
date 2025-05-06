@@ -1,18 +1,18 @@
 // Represents the SIG data block - this contains incident neutron cross section data
 
+use std::ops::Deref;
 use std::sync::Mutex;
-// See page 17 of the ACE format spec for a description of the SIG block
+// See the ACE format spec for a description of the SIG block
 use std::collections::HashMap;
-use std::time::Instant;
 
 use rayon::prelude::*;
 
 use crate::helpers::reaction_type_from_MT;
 use crate::ace::arrays::Arrays;
+use crate::ace::blocks::block_types::MT;
 use crate::ace::blocks::{DataBlockType, ESZ, MTR, LSIG};
 use crate::ace::blocks::block_traits::{get_block_start, block_range_to_slice, PullFromXXS, Process};
 
-type MT = usize;
 type CrossSectionMap = HashMap<MT, CrossSection>;
 
 #[derive(Debug, Clone)]
@@ -29,8 +29,14 @@ impl<'a> std::fmt::Display for CrossSection {
 }
 
 #[derive(Debug, Clone)]
-pub struct SIG {
-    pub xs: CrossSectionMap
+pub struct SIG ( pub CrossSectionMap );
+
+impl Deref for SIG {
+    type Target = CrossSectionMap;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> PullFromXXS<'a> for SIG {
@@ -55,7 +61,7 @@ impl<'a> PullFromXXS<'a> for SIG {
             block_length += num_entries + 2;
         }
 
-        // Return the block's raw data as a vector
+        // Return the block's raw data as a slice
         Some(block_range_to_slice(block_start, block_length, arrays))
     }
 }
@@ -73,7 +79,7 @@ impl<'a> Process<'a> for SIG {
         let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
 
         // Parallelize the loop over cross sections using par_iter()
-        mtr.reaction_types.par_iter().zip(lsig.xs_locs.par_iter()).for_each(|(mt, start_pos)| {
+        mtr.par_iter().zip(lsig.par_iter()).for_each(|(mt, start_pos)| {
             // Get the first position in the energy grid where we have a cross section value
             let energy_start_index: usize = data[start_pos - 1].to_bits() as usize;
             // Get the number of entries we have for the cross section
@@ -89,15 +95,13 @@ impl<'a> Process<'a> for SIG {
             xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
         });
 
-        Self {
-            xs: xs.into_inner().unwrap(), // Access the final xs map
-        }
+        Self(xs.into_inner().unwrap())
     }
 }
 
 impl std::fmt::Display for SIG {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sorted_xs: Vec<CrossSection> = self.xs.values().cloned().collect();
+        let mut sorted_xs: Vec<CrossSection> = self.values().cloned().collect();
         sorted_xs.sort_by_key(|xs| xs.mt);
         let xs_string = sorted_xs.iter()
             .map(|xs| format!("{}", xs))
@@ -117,9 +121,9 @@ mod tests {
 
         // Check contents
         let sig = parsed_ace.data_blocks.SIG.unwrap();
-        assert!(sig.xs.contains_key(&18));
+        assert!(sig.contains_key(&18));
 
-        let fission_xs = sig.xs.get(&18).unwrap();
+        let fission_xs = sig.get(&18).unwrap();
         assert_eq!(fission_xs.energy.len(), 3);
         assert_eq!(fission_xs.xs_val.len(), fission_xs.energy.len());
         assert_eq!(fission_xs.energy, vec![1.0, 2.0, 3.0]);
