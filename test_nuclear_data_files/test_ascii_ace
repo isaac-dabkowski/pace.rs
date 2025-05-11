@@ -1,4 +1,4 @@
-// TEST ASCII ACE FILE - last updated 5/5/25
+// TEST ASCII ACE FILE - last updated 5/11/25
 //
 // Comments may be added by starting a line with "//"
 //
@@ -22,7 +22,7 @@
 //     - SIG ✔
 //     - LAND ✔
 //     - AND ✔
-//     - LDLW
+//     - LDLW ✔
 //     - DLW
 //     - GPD
 //     - MTRP
@@ -51,12 +51,13 @@ H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123
       0         0.      0         0.      0         0.      0         0.
       0         0.      0         0.      0         0.      0         0.
       0         0.      0         0.      0         0.      0         0.
-// NXS array
-      129     1100        3        1        1        1        1        6
+// NXS array, remember to update the first entry with the total length
+// of the XXS array when makign changes to this file.
+      130     1100        3        1        1        1        1        6
         0        1      100        0        0        0        0        0
 // JXS array
         1       24       16       23       92       17       18       93
-       95        0        0        0        0        0        0        0
+       95      130        0        0        0        0        0        0
         0        0        0        0        0        0        0       43
        50        0        0        0        0        0        0        0
 // XXS array
@@ -99,7 +100,7 @@ H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123
                   19
 //     LAND 93-94
                    1                   0
-//      AND 95-129
+//     AND 95-129
                    3   1.00000000000E-11   0.00000000000E+00   3.00000000000E+01
                   -8                 -19                   0                   2
                    3  -1.00000000000E+00   0.00000000000E+00   1.00000000000E+00
@@ -109,3 +110,5 @@ H100 TEST (author)  Reference some_report by Author, A.B, et al.    mat 123
    1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
    1.00000000000E+00   1.00000000000E+00   0.00000000000E+00   0.25000000000E+00
    0.50000000000E+00   0.75000000000E+00   1.00000000000E+00
+//     LDLW 130
+                   1

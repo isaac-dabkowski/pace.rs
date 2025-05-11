@@ -12,6 +12,7 @@ mod bdd;
 mod tyr;
 mod land;
 mod and;
+mod ldlw;
 
 
 pub use block_types::BlockType;
@@ -28,3 +29,4 @@ pub use bdd::BDD;
 pub use tyr::TYR;
 pub use land::LAND;
 pub use and::AND;
+pub use ldlw::LDLW;

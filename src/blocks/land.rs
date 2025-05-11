@@ -9,7 +9,7 @@ use crate::helpers::MTNumber;
 //=====================================================================
 // LAND data block
 //
-// Contains location data of angular distirbutions for all reactions
+// Contains location data of angular distributions for all reactions
 // which produce secondary neutrons.
 //=====================================================================
 #[derive(Debug, Clone, PartialEq)]

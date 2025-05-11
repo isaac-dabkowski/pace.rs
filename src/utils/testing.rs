@@ -25,14 +25,14 @@ lazy_static! {
     pub static ref TEST_PACE_DATA: Mutex<Option<PaceData>> = Mutex::new(None);
     pub static ref TEST_ACE_COMMENTED: &'static str = "test_nuclear_data_files/test_ascii_ace";
     pub static ref TEST_ACE_UNCOMMENTED: &'static str = "test_nuclear_data_files/test_ascii_ace.no_comment";
-    pub static ref TEST_PACE: &'static str = "test_nuclear_data_files/binary_1100.800nc";
+    pub static ref TEST_PACE: &'static str = "test_nuclear_data_files/1100.800nc.pace";
 
     // For local testing
     pub static ref LOCAL_TEST_PACE_DATA: Mutex<Option<PaceData>> = Mutex::new(None);
     pub static ref LOCAL_TEST_ACE: &'static str = "test_files/uranium_test_file";
-    pub static ref LOCAL_TEST_PACE: &'static str = "test_files/binary_92235.800nc";
+    pub static ref LOCAL_TEST_PACE: &'static str = "test_files/92235.800nc.pace";
     // pub static ref LOCAL_TEST_ACE: &'static str = "test_files/hydrogen_test_file";
-    // pub static ref LOCAL_TEST_PACE: &'static str = "test_files/binary_1001.800nc";
+    // pub static ref LOCAL_TEST_PACE: &'static str = "test_files/1001.800nc.pace";
 }
 
 // Checks if a file is ASCII by reading the first 1 kB of the file

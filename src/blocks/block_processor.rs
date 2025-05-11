@@ -13,7 +13,8 @@ use crate::blocks::{
     BDD,
     TYR,
     LAND,
-    AND, // Ensure AND implements a trait for dynamic dispatch
+    AND,
+    LDLW,
 };
 use crate::blocks::block_traits::Parse;
 use crate::arrays::{Arrays, JxsArray, NxsArray, XxsArray};
@@ -31,6 +32,7 @@ pub struct DataBlocks {
     pub TYR: Option<TYR>,
     pub LAND: Option<LAND>,
     pub AND: Option<AND>,
+    pub LDLW: Option<LDLW>,
 }
 
 impl DataBlocks {
@@ -142,6 +144,18 @@ impl DataBlocks {
             start.elapsed().as_micros()
         );
 
+        // -------------------------------------------
+        // Blocks present if secondary neutron energy
+        // distributions are available (NXS(5) != 0)
+        // -------------------------------------------
+        // Secondary neutron energy distribution locations
+        start = Instant::now();
+        let ldlw = LDLW::parse(&arrays, &mtr);
+        println!(
+            "⚛️  LAND time ⚛️ : {} us",
+            start.elapsed().as_micros()
+        );
+
         Ok(
             Self {
                 ESZ: esz,
@@ -155,6 +169,7 @@ impl DataBlocks {
                 TYR: tyr,
                 LAND: land,
                 AND: and,
+                LDLW: ldlw,
             }
         )
     }
