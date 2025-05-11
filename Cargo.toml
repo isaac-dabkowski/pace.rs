@@ -17,6 +17,7 @@ rayon = "1.10.0"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 tempfile = "3.15.0"
+thiserror = "2.0.12"
 tokio = { version = "1.43.1", features = ["full"] }
 
 [features]

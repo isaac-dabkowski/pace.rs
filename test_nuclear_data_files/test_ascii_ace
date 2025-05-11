@@ -1,4 +1,4 @@
-// TEST ASCII ACE FILE - last updated 5/4/25
+// TEST ASCII ACE FILE - last updated 5/5/25
 //
 // Comments may be added by starting a line with "//"
 //
@@ -21,7 +21,7 @@
 //     - LSIG ✔
 //     - SIG ✔
 //     - LAND ✔
-//     - AND
+//     - AND ✔
 //     - LDLW
 //     - DLW
 //     - GPD
