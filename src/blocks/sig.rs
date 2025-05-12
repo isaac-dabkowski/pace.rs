@@ -16,10 +16,10 @@ use crate::blocks::block_traits::{get_block_start, block_range_to_slice, PullFro
 // the ACE format spec for a description of the SIG block.
 //=====================================================================
 #[derive(Debug, Clone)]
-pub struct SIG ( pub CrossSectionMap );
+pub struct SIG ( pub SigCrossSectionMap );
 
 impl Deref for SIG {
-    type Target = CrossSectionMap;
+    type Target = SigCrossSectionMap;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -64,7 +64,7 @@ impl<'a> Process<'a> for SIG {
             dependencies.2.as_ref().unwrap(),
         );
 
-        let xs = Mutex::new(CrossSectionMap::default()); // Use Mutex for thread-safe access
+        let xs = Mutex::new(SigCrossSectionMap::default()); // Use Mutex for thread-safe access
 
         // Parallelize the loop over cross sections using par_iter()
         mtr.par_iter().zip(lsig.par_iter()).for_each(|(mt, start_pos)| {
@@ -80,7 +80,7 @@ impl<'a> Process<'a> for SIG {
         
             // Lock the Mutex and insert into the CrossSectionMap
             let mut xs_lock = xs.lock().unwrap();
-            xs_lock.insert(*mt, CrossSection { mt: *mt, energy, xs_val });
+            xs_lock.insert(*mt, SigCrossSection { mt: *mt, energy, xs_val });
         });
 
         Self(xs.into_inner().unwrap())
@@ -89,7 +89,7 @@ impl<'a> Process<'a> for SIG {
 
 impl std::fmt::Display for SIG {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut sorted_xs: Vec<CrossSection> = self.values().cloned().collect();
+        let mut sorted_xs: Vec<SigCrossSection> = self.values().cloned().collect();
         sorted_xs.sort_by_key(|xs| xs.mt);
         let xs_string = sorted_xs.iter()
             .map(|xs| format!("{}", xs))
@@ -102,16 +102,16 @@ impl std::fmt::Display for SIG {
 //=====================================================================
 // Helper struct to represent a cross section.
 //=====================================================================
-type CrossSectionMap = HashMap<usize, CrossSection>;
+type SigCrossSectionMap = HashMap<usize, SigCrossSection>;
 
 #[derive(Debug, Clone)]
-pub struct CrossSection {
+pub struct SigCrossSection {
     pub mt: usize,
     pub energy: Vec<f64>,
     pub xs_val: Vec<f64>,
 }
 
-impl<'a> std::fmt::Display for CrossSection {
+impl<'a> std::fmt::Display for SigCrossSection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "CrossSection(MT={} {})", self.mt, reaction_type_from_MT(self.mt))
     }
