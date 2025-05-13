@@ -49,5 +49,3 @@ mod tests {
         assert_abs_diff_eq!(xs.interpolate(2.5).unwrap(), 0.25);
     }
 }
-
-

@@ -102,10 +102,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_land_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let land = parsed_ace.data_blocks.LAND.unwrap();
+        let land = parsed_pace.data_blocks.LAND.unwrap();
         assert_eq!(land.get(&(MTNumber::ElasticScattering as usize)), Some(&1));
         assert_eq!(land.get(&(MTNumber::Fission as usize)), Some(&0));
     }

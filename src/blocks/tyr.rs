@@ -151,10 +151,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_tyr_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let tyr = parsed_ace.data_blocks.TYR.unwrap();
+        let tyr = parsed_pace.data_blocks.TYR.unwrap();
         assert_eq!(
             tyr.get(&(MTNumber::Fission as usize)),
             Some(&ExitingNeutronData {

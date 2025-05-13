@@ -64,10 +64,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_mtr_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let mtr = parsed_ace.data_blocks.MTR.unwrap();
+        let mtr = parsed_pace.data_blocks.MTR.unwrap();
         assert_eq!(mtr.len(), 1);
         assert_eq!(mtr[0], 18);
     }

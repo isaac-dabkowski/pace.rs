@@ -49,14 +49,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_iwaz_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
         // Check contents
-        for za_iz_pair in &parsed_ace.izaw_array.pairs {
+        for za_iz_pair in &parsed_pace.izaw_array.pairs {
             assert_eq!(za_iz_pair.za, 0);
             assert_eq!(za_iz_pair.iz, 0.0);
             assert_eq!(*za_iz_pair, IzawPair::new(0, 0.0));
         }
-        let izaw_len = parsed_ace.izaw_array.pairs.len();
+        let izaw_len = parsed_pace.izaw_array.pairs.len();
         assert_eq!(izaw_len, 16);
     }
 }

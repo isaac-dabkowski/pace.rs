@@ -73,10 +73,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_esz_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check parsed ESZ block from custom test file
-        let esz = parsed_ace.data_blocks.ESZ.unwrap();
+        let esz = parsed_pace.data_blocks.ESZ.unwrap();
         assert_eq!(esz.energy.len(), 3);
         assert_eq!(esz.total_xs.len(), esz.energy.len());
         assert_eq!(esz.dissapearance_xs.len(), esz.energy.len());

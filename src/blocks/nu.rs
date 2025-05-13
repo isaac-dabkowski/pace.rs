@@ -177,10 +177,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_nu_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let nu = parsed_ace.data_blocks.NU.unwrap();
+        let nu = parsed_pace.data_blocks.NU.unwrap();
         assert!(nu.prompt.is_some());
         assert!(nu.total.is_some());
         assert!(matches!(nu.prompt.as_ref().unwrap(), NuFormulation::Polynomial(_)));

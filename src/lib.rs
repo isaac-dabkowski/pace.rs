@@ -6,7 +6,6 @@ mod arrays;
 mod blocks;
 mod header;
 mod interpolation;
-mod pace_data;
 mod utils;
 
 mod helpers;

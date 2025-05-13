@@ -80,10 +80,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_bdd_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let bdd = parsed_ace.data_blocks.BDD.unwrap();
+        let bdd = parsed_pace.data_blocks.BDD.unwrap();
         assert_eq!(bdd.decay_constants.len(), 6);
         assert_eq!(bdd.precursor_tables.len(), 6);
         assert_eq!(

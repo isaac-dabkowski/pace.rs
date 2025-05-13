@@ -63,10 +63,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_lsig_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let lsig = parsed_ace.data_blocks.LSIG.unwrap();
+        let lsig = parsed_pace.data_blocks.LSIG.unwrap();
         assert_eq!(lsig.len(), 1);
         assert_eq!(lsig[0], 1);
     }

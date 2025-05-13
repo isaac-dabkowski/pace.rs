@@ -51,7 +51,7 @@ pub struct PaceMmap ( memmap2::Mmap );
 
 impl PaceMmap {
     // Take a pre-existing PACE file and map it into memory.
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn from_PACE<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = File::open(path.as_ref())
             .with_context(|| format!("Failed to open PACE file: {:?}", path.as_ref()))?;
 

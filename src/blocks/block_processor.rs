@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::time::Instant;
 
+use anyhow::Result;
+
 use crate::utils::PaceMmap;
 use crate::blocks::{
     ESZ,
@@ -36,7 +38,7 @@ pub struct DataBlocks {
 }
 
 impl DataBlocks {
-    pub fn from_PACE(mmap: &PaceMmap, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self, Box<dyn Error>> {
+    pub fn from_PACE(mmap: &PaceMmap, nxs_array: &NxsArray, jxs_array: &JxsArray) -> Result<Self> {
         // Recall that this array is returned as f64's, we will parse these values back to
         // integers where appropriate later
         let xxs_array: &XxsArray = mmap.xxs_array();

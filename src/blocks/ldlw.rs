@@ -76,10 +76,10 @@ impl std::fmt::Display for LDLW {
 
 //     #[tokio::test]
 //     async fn test_land_parsing() {
-//         let parsed_ace = get_parsed_test_file().await;
+//         let parsed_pace = get_parsed_test_file().await;
 
 //         // Check contents
-//         let ldlw = parsed_ace.data_blocks.LDLW.unwrap();
+//         let ldlw = parsed_pace.data_blocks.LDLW.unwrap();
 //         assert_eq!(ldlw.get(&(MTNumber::ElasticScattering as usize)), Some(&1));
 //         assert_eq!(ldlw.get(&(MTNumber::Fission as usize)), Some(&0));
 //     }

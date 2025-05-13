@@ -14,7 +14,7 @@ use tempfile::tempfile;
 use lazy_static::lazy_static;
 use anyhow::{Context, Result};
 
-use crate::pace_data::PaceData;
+use crate::api::{Isotope, PaceData};
 use crate::utils::binary_format::convert_ACE_to_PACE;
 
 // These variables are used to hold filepaths in a way where
@@ -26,6 +26,7 @@ lazy_static! {
     pub static ref TEST_ACE_COMMENTED: &'static str = "test_nuclear_data_files/test_ascii_ace";
     pub static ref TEST_ACE_UNCOMMENTED: &'static str = "test_nuclear_data_files/test_ascii_ace.no_comment";
     pub static ref TEST_PACE: &'static str = "test_nuclear_data_files/1100.800nc.pace";
+    pub static ref ISOTOPE: Mutex<Option<Isotope>> = Mutex::new(None);
 
     // For local testing
     pub static ref LOCAL_TEST_PACE_DATA: Mutex<Option<PaceData>> = Mutex::new(None);
@@ -33,6 +34,7 @@ lazy_static! {
     pub static ref LOCAL_TEST_PACE: &'static str = "test_files/92235.800nc.pace";
     // pub static ref LOCAL_TEST_ACE: &'static str = "test_files/hydrogen_test_file";
     // pub static ref LOCAL_TEST_PACE: &'static str = "test_files/1001.800nc.pace";
+    pub static ref LOCAL_ISOTOPE: Mutex<Option<Isotope>> = Mutex::new(None);
 }
 
 // Checks if a file is ASCII by reading the first 1 kB of the file
@@ -84,16 +86,16 @@ pub async fn local_get_parsed_test_file() -> PaceData {
         let mut start = Instant::now();
         let _ = convert_ACE_to_PACE(*LOCAL_TEST_ACE);
         println!(
-            "⚛️  Time to convert local ACE file to PACE ⚛️ : {} sec",
-            start.elapsed().as_secs_f32()
+            "⚛️  Time to convert local ACE file to PACE ⚛️ : {:?}",
+            start.elapsed()
         );
 
         // Parse the PACE file
         start = Instant::now();
-        let parsed_ace = PaceData::from_file(*LOCAL_TEST_PACE).await.unwrap();
+        let parsed_ace = PaceData::from_PACE(*LOCAL_TEST_PACE).await.unwrap();
         println!(
-            "⚛️  Time to parse local PACE file ⚛️ : {} sec",
-            start.elapsed().as_secs_f32()
+            "⚛️  Time to parse local PACE file ⚛️ : {:?}",
+            start.elapsed()
         );
         *data = Some(parsed_ace);
     }
@@ -113,19 +115,60 @@ pub async fn get_parsed_test_file() -> PaceData {
         let mut start = Instant::now();
         let _ = convert_ACE_to_PACE(*TEST_ACE_UNCOMMENTED);
         println!(
-            "⚛️  Time to convert ACE test file to PACE ⚛️ : {} sec",
-            start.elapsed().as_secs_f32()
+            "⚛️  Time to convert ACE test file to PACE ⚛️ : {:?}",
+            start.elapsed()
         );
 
         // Parse the PACE file
         start = Instant::now();
-        let parsed_ace = PaceData::from_file(*TEST_PACE).await.unwrap();
+        let parsed_ace = PaceData::from_PACE(*TEST_PACE).await.unwrap();
         println!(
-            "⚛️  Time to parse test PACE file ⚛️ : {} sec",
-            start.elapsed().as_secs_f32()
+            "⚛️  Time to parse test PACE file ⚛️ : {:?}",
+            start.elapsed()
         );
         *data = Some(parsed_ace);
     }
     // Otherwise, return the already parsed data
     data.as_ref().unwrap().clone()
+}
+
+// The following code parses a `PaceData` file and then builds its Isotope.
+pub async fn local_get_isotope() -> Isotope {
+    let mut isotope: std::sync::MutexGuard<'_, Option<Isotope>> = LOCAL_ISOTOPE.lock().unwrap();
+
+    // Only make the Isotope if it is not already made
+    if isotope.is_none() {
+        // Get the parsed PACE data
+        let mut pace_data = local_get_parsed_test_file().await;
+        // Build the Isotope
+        let mut start = Instant::now();
+        let parsed_isotope = Isotope::from_PaceData(pace_data).await.unwrap();
+        println!(
+            "⚛️  Time to create Isotope from local PACE file ⚛️ : {:?}",
+            start.elapsed()
+        );
+        *isotope = Some(parsed_isotope);
+    }
+    // Otherwise, return the Isotope
+    isotope.as_ref().unwrap().clone()
+}
+
+pub async fn get_isotope() -> Isotope {
+    let mut isotope: std::sync::MutexGuard<'_, Option<Isotope>> = ISOTOPE.lock().unwrap();
+
+    // Only make the Isotope if it is not already made
+    if isotope.is_none() {
+        // Get the parsed PACE data
+        let mut pace_data = get_parsed_test_file().await;
+        // Build the Isotope
+        let mut start = Instant::now();
+        let parsed_isotope = Isotope::from_PaceData(pace_data).await.unwrap();
+        println!(
+            "⚛️  Time to create Isotope from custom PACE file ⚛️ : {:?}",
+            start.elapsed()
+        );
+        *isotope = Some(parsed_isotope);
+    }
+    // Otherwise, return the Isotope
+    isotope.as_ref().unwrap().clone()
 }

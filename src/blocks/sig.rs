@@ -124,10 +124,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sig_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let sig = parsed_ace.data_blocks.SIG.unwrap();
+        let sig = parsed_pace.data_blocks.SIG.unwrap();
         assert!(sig.contains_key(&18));
 
         let fission_xs = sig.get(&18).unwrap();

@@ -107,12 +107,12 @@ mod tests {
     #[tokio::test]
     async fn test_2_0_1_header_parsing() {
         // The custom test ACE file is of version 2.0.1.
-        let parsed_ace = utils::get_parsed_test_file().await;
-        assert_eq!(parsed_ace.header.szaid, Some(String::from("1100.800nc")));
-        assert_eq!(parsed_ace.header.zaid, String::from("1100.00c"));
-        assert_eq!(parsed_ace.header.atomic_mass_fraction, 99.999);
-        assert_eq!(parsed_ace.header.kT, 2.5301e-08);
-        assert_eq!(parsed_ace.header.temperature, 293.6059129982851);
+        let parsed_pace = utils::get_parsed_test_file().await;
+        assert_eq!(parsed_pace.header.szaid, Some(String::from("1100.800nc")));
+        assert_eq!(parsed_pace.header.zaid, String::from("1100.00c"));
+        assert_eq!(parsed_pace.header.atomic_mass_fraction, 99.999);
+        assert_eq!(parsed_pace.header.kT, 2.5301e-08);
+        assert_eq!(parsed_pace.header.temperature, 293.6059129982851);
     }
 
     #[test]

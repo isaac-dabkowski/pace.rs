@@ -65,10 +65,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_lqr_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let lqr = parsed_ace.data_blocks.LQR.unwrap();
+        let lqr = parsed_pace.data_blocks.LQR.unwrap();
         assert_eq!(lqr[&18], 41.0);
     }
 }

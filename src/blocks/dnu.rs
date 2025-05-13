@@ -66,10 +66,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_dnu_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
+        let parsed_pace = get_parsed_test_file().await;
 
         // Check contents
-        let dnu = parsed_ace.data_blocks.DNU.unwrap();
+        let dnu = parsed_pace.data_blocks.DNU.unwrap();
         assert_abs_diff_eq!(dnu.evaluate(1e-11).unwrap(), 1.0, epsilon=1e-5);
         assert_abs_diff_eq!(dnu.evaluate(30.0).unwrap(), 2.0, epsilon=1e-5);
         assert_abs_diff_eq!(dnu.evaluate(10.0).unwrap(), 1.333333, epsilon=1e-5);

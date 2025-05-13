@@ -229,8 +229,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_and_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
-        let and = parsed_ace.data_blocks.AND.unwrap();
+        let parsed_pace = get_parsed_test_file().await;
+        let and = parsed_pace.data_blocks.AND.unwrap();
 
         // Check that the reactions with angular distributions are present
         assert!(and.contains_key(&(MTNumber::ElasticScattering as usize)));
@@ -239,8 +239,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_and_energy_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
-        let and = parsed_ace.data_blocks.AND.unwrap();
+        let parsed_pace = get_parsed_test_file().await;
+        let and = parsed_pace.data_blocks.AND.unwrap();
         let scatter_dist = and.get(&(MTNumber::ElasticScattering as usize)).unwrap();
         let fission_dist = and.get(&(MTNumber::Fission as usize)).unwrap();
 
@@ -253,8 +253,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_and_distribution_parsing() {
-        let parsed_ace = get_parsed_test_file().await;
-        let and = parsed_ace.data_blocks.AND.unwrap();
+        let parsed_pace = get_parsed_test_file().await;
+        let and = parsed_pace.data_blocks.AND.unwrap();
         let scatter_dist = and.get(&(MTNumber::ElasticScattering as usize)).unwrap();
         let fission_dist = and.get(&(MTNumber::Fission as usize)).unwrap();
 
