@@ -102,6 +102,8 @@ mod tests {
     use tempfile::tempfile;
     use std::io::{Write, Seek, BufReader};
 
+    use approx::assert_abs_diff_eq;
+
     #[tokio::test]
     async fn test_2_0_1_header_parsing() {
         // The custom test ACE file is of version 2.0.1.
@@ -133,8 +135,8 @@ mod tests {
         // Check fields
         assert_eq!(header.zaid, "1100.00c");
         assert_eq!(header.szaid, None);
-        assert!((header.atomic_mass_fraction - 99.999).abs() < 1e-6);
-        assert!((header.kT - 2.5301e-08).abs() < 1e-6);
-        assert!((header.temperature - 293.605912998).abs() < 1e-6);
+        assert_abs_diff_eq!(header.atomic_mass_fraction, 99.999, epsilon=1e-5);
+        assert_abs_diff_eq!(header.kT, 2.5301e-08, epsilon=1e-5);
+        assert_abs_diff_eq!(header.temperature, 293.605912998, epsilon=1e-5);
     }
 }

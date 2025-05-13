@@ -171,8 +171,9 @@ pub enum InterpolationError {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
+
+    use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_histogram_interpolation() {
@@ -244,11 +245,11 @@ mod tests {
         let result = table.interpolate(1.0).unwrap();
         assert_eq!(result, 2.0);
         let result = table.interpolate(1.5).unwrap();
-        assert!((result - 3.754888).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 3.754888, epsilon=1e-5);
         let result = table.interpolate(2.0).unwrap();
         assert_eq!(result, 5.0);
         let result = table.interpolate(2.5).unwrap();
-        assert!((result - 7.751699).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 7.751699, epsilon=1e-5);
         let result = table.interpolate(3.0).unwrap();
         assert_eq!(result, 10.0);
         let result = table.interpolate(3.1);
@@ -271,11 +272,11 @@ mod tests {
         let result = table.interpolate(1.0).unwrap();
         assert_eq!(result, 2.0);
         let result = table.interpolate(1.5).unwrap();
-        assert!((result - 3.162278).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 3.162278, epsilon=1e-5);
         let result = table.interpolate(2.0).unwrap();
         assert_eq!(result, 5.0);
         let result = table.interpolate(2.5).unwrap();
-        assert!((result - 7.071068).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 7.071068, epsilon=1e-5);
         let result = table.interpolate(3.0).unwrap();
         assert_eq!(result, 10.0);
         let result = table.interpolate(3.1);
@@ -298,11 +299,11 @@ mod tests {
         let result = table.interpolate(1.0).unwrap();
         assert_eq!(result, 2.0);
         let result = table.interpolate(1.5).unwrap();
-        assert!((result - 3.418298).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 3.418298, epsilon=1e-5);
         let result = table.interpolate(2.0).unwrap();
         assert_eq!(result, 5.0);
         let result = table.interpolate(2.5).unwrap();
-        assert!((result - 7.322152).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 7.322152, epsilon=1e-5);
         let result = table.interpolate(3.0).unwrap();
         assert_eq!(result, 10.0);
         let result = table.interpolate(3.1);
@@ -367,21 +368,21 @@ mod tests {
         let result = table.interpolate(3.0).unwrap();
         assert_eq!(result, 10.0);
         let result = table.interpolate(3.5).unwrap();
-        assert!((result - 7.320815).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 7.320815, epsilon=1e-5);
         // Log-lin
         let result = table.interpolate(4.0).unwrap();
         assert_eq!(result, 5.0);
         let result = table.interpolate(4.5).unwrap();
-        assert!((result - 3.162278).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 3.162278, epsilon=1e-5);
         // Log-log
         let result = table.interpolate(5.0).unwrap();
         assert_eq!(result, 2.0);
         let result = table.interpolate(5.5).unwrap();
-        assert!((result - 15.458998).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 15.458998, epsilon=1e-5);
         let result = table.interpolate(6.0).unwrap();
         assert_eq!(result, 100.0);
         let result = table.interpolate(6.5).unwrap();
-        assert!((result - 9.151672).abs() < 1e-5);
+        assert_abs_diff_eq!(result, 9.151672, epsilon=1e-5);
         let result = table.interpolate(7.0).unwrap();
         assert_eq!(result, 1.0);
         // Out of bounds

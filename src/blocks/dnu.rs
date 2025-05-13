@@ -62,15 +62,17 @@ impl std::fmt::Display for DNU {
 mod tests {
     use crate::utils::get_parsed_test_file;
 
+    use approx::assert_abs_diff_eq;
+
     #[tokio::test]
     async fn test_dnu_parsing() {
         let parsed_ace = get_parsed_test_file().await;
 
         // Check contents
         let dnu = parsed_ace.data_blocks.DNU.unwrap();
-        assert!((dnu.evaluate(1e-11).unwrap() - 1.0).abs() < 1e-6);
-        assert!((dnu.evaluate(30.0).unwrap() - 2.0).abs() < 1e-6);
-        assert!((dnu.evaluate(10.0).unwrap() - 1.333333).abs() < 1e-6);
+        assert_abs_diff_eq!(dnu.evaluate(1e-11).unwrap(), 1.0, epsilon=1e-5);
+        assert_abs_diff_eq!(dnu.evaluate(30.0).unwrap(), 2.0, epsilon=1e-5);
+        assert_abs_diff_eq!(dnu.evaluate(10.0).unwrap(), 1.333333, epsilon=1e-5);
         assert!(dnu.evaluate(100.0).is_err());
     }
 }

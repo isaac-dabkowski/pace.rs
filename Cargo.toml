@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
+approx = "0.5.1"
 dashmap = "6.1.0"
 fast-float = "0.2.0"
 futures = "0.3.31"

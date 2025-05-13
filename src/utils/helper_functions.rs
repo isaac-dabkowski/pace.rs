@@ -27,10 +27,12 @@ pub fn compute_temperature_from_kT(kT: f64) -> f64 {
 mod tests {
     use super::*;
 
+    use approx::assert_abs_diff_eq;
+
     #[test]
     fn test_compute_temperature_from_kT() {
         let kT = 8.617333262e-8;
         let expected_temperature = 1000.0; // Kelvin
-        assert!((compute_temperature_from_kT(kT) - expected_temperature).abs() < 1e-9);
+        assert_abs_diff_eq!(compute_temperature_from_kT(kT), expected_temperature, epsilon=1e-9);
     }
 }
