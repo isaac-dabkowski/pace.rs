@@ -1,0 +1,10 @@
+[package]
+name = "nuclear-hdf5"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["full"] }
+hdf5 = { package = "hdf5-metno", version = "0.10.0" }
