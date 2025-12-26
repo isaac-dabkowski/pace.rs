@@ -57,6 +57,7 @@ pub async fn get_parsed_neutron_file() -> &'static Result<IncidentNeutron, Incid
     // the parsing of an actual HDF5 file.
     let incident_neutron = TEST_INCIDENTNEUTRON
         .get_or_init(|| async {
+            create_test_hdf5_file();
             // Path to HDF5 test file
             let hdf5_path = Path::new(TEST_HDF5);
 
@@ -68,15 +69,4 @@ pub async fn get_parsed_neutron_file() -> &'static Result<IncidentNeutron, Incid
         })
         .await;
     incident_neutron
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_hdf5_to_yaml() {
-        create_test_hdf5_file();
-    }
 }

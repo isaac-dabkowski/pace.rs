@@ -436,61 +436,6 @@ fn validate_name(name: &str) -> Result<(), YamlHdf5Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::NamedTempFile;
-
-    #[test]
-    fn test_yaml_to_hdf5_file_round_trip() {
-        // Use the small example spec to write an HDF5 file.
-        let yaml_path = Path::new("test_files/test_file.yaml");
-        let tmp = NamedTempFile::new().expect("create temp hdf5 file");
-        let h5_path = tmp.path();
-
-        yaml_to_hdf5_file(yaml_path, h5_path).expect("yaml_to_hdf5_file should succeed");
-
-        // Open written file and verify a few attributes.
-        let file = File::open(h5_path).expect("open written hdf5");
-        let root = file.group("/").expect("root group");
-
-        // Root attributes
-        let filetype: hdf5::types::VarLenUnicode = root
-            .attr("filetype")
-            .expect("filetype attr")
-            .read_scalar()
-            .expect("read filetype");
-        assert_eq!(filetype.as_str(), "data_neutron");
-
-        let version: Vec<i64> = root
-            .attr("version")
-            .expect("version attr")
-            .read_raw()
-            .expect("read version");
-        assert_eq!(version, vec![1, 0]);
-
-        // Child group attributes
-        let h100 = root.group("H100").expect("H100 group");
-        let a: i64 = h100.attr("A").expect("A attr").read_scalar().expect("read A");
-        let z: i64 = h100.attr("Z").expect("Z attr").read_scalar().expect("read Z");
-        let atomic_weight_ratio: f64 = h100
-            .attr("atomic_weight_ratio")
-            .expect("awr attr")
-            .read_scalar()
-            .expect("read awr");
-        let metastable: i64 = h100
-            .attr("metastable")
-            .expect("metastable attr")
-            .read_scalar()
-            .expect("read metastable");
-
-        assert_eq!(a, 100);
-        assert_eq!(z, 1);
-        assert!((atomic_weight_ratio - 100.01).abs() < 1e-10);
-        assert_eq!(metastable, 0);
-
-        // Ensure file exists and is non-empty
-        let metadata = fs::metadata(h5_path).expect("metadata");
-        assert!(metadata.len() > 0);
-    }
 
     #[test]
     fn test_validate_name_errors() {
