@@ -10,6 +10,7 @@ tokio = { version = "1", features = ["full"] }
 hdf5 = { package = "hdf5-metno", version = "0.10.0" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
+thiserror = "2.0.17"
 
 [features]
 local = []

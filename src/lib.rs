@@ -5,4 +5,4 @@ mod photon;
 mod thermal;
 mod utils;
 
-pub use crate::neutron::IncidentNeutron;
+pub use crate::neutron::{IncidentNeutron, IncidentNeutronError};
