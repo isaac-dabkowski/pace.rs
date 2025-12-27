@@ -1,3 +1,4 @@
+mod energy;
 mod error;
 mod incident_neutron;
 

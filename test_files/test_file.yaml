@@ -1,10 +1,16 @@
 attrs:
   filetype: { type: str, shape: [], data: data_neutron }
-  version: { type: i64, shape: [2], data: [1, 0] }
+  version:  { type: i64, shape: [2], data: [1, 0] }
 groups:
   H100:
     attrs:
-      A: { type: i64, shape: [], data: 100 }
-      Z: { type: i64, shape: [], data: 1 }
+      A:                   { type: i64, shape: [], data: 100 }
+      Z:                   { type: i64, shape: [], data: 1 }
       atomic_weight_ratio: { type: f64, shape: [], data: 100.01 }
-      metastable: { type: i64, shape: [], data: 0 }
+      metastable:          { type: i64, shape: [], data: 0 }
+    groups:
+      energy:
+        datasets:
+          300K:  { type: f64, shape: [3], data: [1.0e-5, 1.0e+0, 1.0e+7] }
+          600K:  { type: f64, shape: [3], data: [2.0e-5, 2.0e+0, 2.0e+7] }
+          1200K: { type: f64, shape: [3], data: [3.0e-5, 3.0e+0, 3.0e+7] }

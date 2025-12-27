@@ -239,18 +239,18 @@ fn write_attribute(group: &Group, key: &str, v: &H5Value) -> Result<(), YamlHdf5
             let vs = sv.to_vec();
             if dims.is_empty() {
                 let s = &vs[0];
-                let v = hdf5::types::VarLenUnicode::from_str(s)?;
+                let v = hdf5::types::VarLenAscii::from_ascii(s)?;
                 group
-                    .new_attr::<hdf5::types::VarLenUnicode>()
+                    .new_attr::<hdf5::types::VarLenAscii>()
                     .create(key)?
                     .write_scalar(&v)?;
             } else {
-                let data: Vec<hdf5::types::VarLenUnicode> = vs
+                let data: Vec<hdf5::types::VarLenAscii> = vs
                     .iter()
-                    .map(|s| hdf5::types::VarLenUnicode::from_str(s))
+                    .map(|s| hdf5::types::VarLenAscii::from_ascii(s))
                     .collect::<std::result::Result<_, hdf5::types::StringError>>()?;
                 group
-                    .new_attr::<hdf5::types::VarLenUnicode>()
+                    .new_attr::<hdf5::types::VarLenAscii>()
                     .shape(dims.as_slice())
                     .create(key)?
                     .write_raw(&data)?;
@@ -326,18 +326,18 @@ fn write_dataset(group: &Group, key: &str, v: &H5Value) -> Result<(), YamlHdf5Er
             let vs = sv.to_vec();
             if dims.is_empty() {
                 let s = &vs[0];
-                let v = hdf5::types::VarLenUnicode::from_str(s)?;
+                let v = hdf5::types::VarLenAscii::from_ascii(s)?;
                 group
-                    .new_dataset::<hdf5::types::VarLenUnicode>()
+                    .new_dataset::<hdf5::types::VarLenAscii>()
                     .create(key)?
                     .write_scalar(&v)?;
             } else {
-                let data: Vec<hdf5::types::VarLenUnicode> = vs
+                let data: Vec<hdf5::types::VarLenAscii> = vs
                     .iter()
-                    .map(|s| hdf5::types::VarLenUnicode::from_str(s))
+                    .map(|s| hdf5::types::VarLenAscii::from_ascii(s))
                     .collect::<std::result::Result<_, hdf5::types::StringError>>()?;
                 group
-                    .new_dataset::<hdf5::types::VarLenUnicode>()
+                    .new_dataset::<hdf5::types::VarLenAscii>()
                     .shape(dims.as_slice())
                     .create(key)?
                     .write_raw(&data)?;
