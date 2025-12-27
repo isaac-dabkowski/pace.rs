@@ -4,10 +4,10 @@ use std::path::Path;
 use hdf5;
 
 use crate::IncidentNeutronError;
-use crate::utils::constants::ENERGY_GROUP_NAME;
 use crate::utils::{constants, PERIODIC_TABLE};
 
 use super::energy::NeutronEnergy;
+use super::kts::KTs;
 
 #[derive(Clone, Debug)]
 pub struct Reaction {
@@ -47,8 +47,8 @@ pub struct IncidentNeutron {
     pub atomic_weight_ratio: f64,
     // Shared energy grid across which cross sections are tabulated for different temperatures
     pub energy: NeutronEnergy,
-    // List of temperatures for nucleus for which data is available, units are eV
-    pub kts_ev: Vec<f64>,
+    // Temperatures for which data is available, stored as kT in eV keyed by temperature in K
+    pub kts: KTs,
 
     // Reactions contain cross sections, secondary and and energy distributions,
     // and metadata for different reaction types. Keys are reaction MT values.
@@ -71,37 +71,28 @@ impl IncidentNeutron {
         // Open HDF5 file
         let hdf5 = hdf5::File::open(path)?;
 
-        // Confirm that this is a neutron data file
+        // Confirm that this is a neutron data file.
         let root = hdf5.group("/")?;
-        #[cfg(not(feature = "local"))]
-        {
-            let filetype_attr = root.attr("filetype")?;
-            // Some files may store this as Unicode, others as ASCII. Try both.
-            let filetype_str = filetype_attr
-                .read_scalar::<hdf5::types::VarLenAscii>()
-                .map(|v| v.as_str().to_owned())
-                .or_else(|_| {
-                    filetype_attr
-                        .read_scalar::<hdf5::types::VarLenAscii>()
-                        .map(|v| v.as_str().to_owned())
-                })?;
-            if filetype_str.as_str() != constants::NEUTRON_DATA_FILETYPE {
-                return Err(IncidentNeutronError::InvalidH5Input(format!(
-                    "Expected 'data_neutron' filetype, received {}",
-                    filetype_str
-                )));
-            };
-        }
+        // Filetype is stored as a fixed-length ASCII string ("data_neutron")
+        // type FixedStr = hdf5::types::FixedAscii<constants::MAX_STR_LEN>;
+        let filetype_val: hdf5::types::FixedAscii<{ constants::MAX_STR_LEN }> = root.attr("filetype")?.read_scalar()?;
+        let filetype_str = filetype_val.as_str();
+        if filetype_str != constants::NEUTRON_DATA_FILETYPE {
+            return Err(IncidentNeutronError::InvalidH5Input(format!(
+                "Expected 'data_neutron' filetype, received {}",
+                filetype_str
+            )));
+        };
 
         // Get the isotope name
         let name = root.member_names()?.first().unwrap().to_string();
 
         // Get atributes from top level group
         let isotope_group = hdf5.group(&name)?;
-        let atomic_number: i64 = isotope_group.attr("Z")?.read_scalar()?;
-        let mass_number: i64 = isotope_group.attr("A")?.read_scalar()?;
-        let atomic_weight_ratio: f64 = isotope_group.attr("atomic_weight_ratio")?.read_scalar()?;
-        let metastable_id: i64 = isotope_group.attr("metastable")?.read_scalar()?;
+        let atomic_number = isotope_group.attr("Z")?.read_scalar::<i64>()?;
+        let mass_number = isotope_group.attr("A")?.read_scalar::<i64>()?;
+        let atomic_weight_ratio = isotope_group.attr("atomic_weight_ratio")?.read_scalar::<f64>()?;
+        let metastable_id = isotope_group.attr("metastable")?.read_scalar::<i64>()?;
         let metastable = match metastable_id {
             0 => false,
             1 => true,
@@ -121,8 +112,10 @@ impl IncidentNeutron {
             &isotope_group.group(constants::ENERGY_GROUP_NAME)?
         )?;
 
-        // TEMP VALUES
-        let kts_ev = vec![1.0, 2.0, 3.0];
+        // kTs values
+        let kts = KTs::from_group(&isotope_group.group("kTs")?)?;
+
+        // Placeholders
         let mut reactions = HashMap::new();
         reactions.insert(1, Reaction {});
         let fission_energy = Some(FissionEnergyRelease {});
@@ -137,7 +130,7 @@ impl IncidentNeutron {
             atomic_symbol,
             metastable,
             atomic_weight_ratio,
-            kts_ev,
+            kts,
             energy,
             reactions,
             fission_energy,

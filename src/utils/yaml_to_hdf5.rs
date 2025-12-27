@@ -2,7 +2,6 @@ use hdf5::{File, Group};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
-use std::str::FromStr;
 use thiserror::Error;
 
 // Top-level YAML representation of an HDF5 file.
@@ -236,21 +235,34 @@ fn write_attribute(group: &Group, key: &str, v: &H5Value) -> Result<(), YamlHdf5
             }
         }
         (DType::Str, H5Data::Str(sv)) => {
+            // Store all string attributes as fixed-length ASCII with a shared
+            // maximum length to keep the on-disk representation simple and
+            // compatible with vendor-style files.
+            const MAX_STR_LEN: usize = 32;
+            type FixedStr = hdf5::types::FixedAscii<MAX_STR_LEN>;
+
             let vs = sv.to_vec();
+
+            if let Some(s) = vs.iter().find(|s| s.len() > MAX_STR_LEN) {
+                return Err(YamlHdf5Error::Spec(format!(
+                    "String value '{s}' for attribute '{key}' exceeds max length {MAX_STR_LEN}"
+                )));
+            }
+
             if dims.is_empty() {
                 let s = &vs[0];
-                let v = hdf5::types::VarLenAscii::from_ascii(s)?;
+                let v = FixedStr::from_ascii(s)?;
                 group
-                    .new_attr::<hdf5::types::VarLenAscii>()
+                    .new_attr::<FixedStr>()
                     .create(key)?
                     .write_scalar(&v)?;
             } else {
-                let data: Vec<hdf5::types::VarLenAscii> = vs
+                let data: Vec<FixedStr> = vs
                     .iter()
-                    .map(|s| hdf5::types::VarLenAscii::from_ascii(s))
+                    .map(|s| FixedStr::from_ascii(s))
                     .collect::<std::result::Result<_, hdf5::types::StringError>>()?;
                 group
-                    .new_attr::<hdf5::types::VarLenAscii>()
+                    .new_attr::<FixedStr>()
                     .shape(dims.as_slice())
                     .create(key)?
                     .write_raw(&data)?;
@@ -323,21 +335,32 @@ fn write_dataset(group: &Group, key: &str, v: &H5Value) -> Result<(), YamlHdf5Er
             }
         }
         (DType::Str, H5Data::Str(sv)) => {
+            // Use the same fixed-length ASCII scheme for string datasets.
+            const MAX_STR_LEN: usize = 32;
+            type FixedStr = hdf5::types::FixedAscii<MAX_STR_LEN>;
+
             let vs = sv.to_vec();
+
+            if let Some(s) = vs.iter().find(|s| s.len() > MAX_STR_LEN) {
+                return Err(YamlHdf5Error::Spec(format!(
+                    "String value '{s}' for dataset '{key}' exceeds max length {MAX_STR_LEN}"
+                )));
+            }
+
             if dims.is_empty() {
                 let s = &vs[0];
-                let v = hdf5::types::VarLenAscii::from_ascii(s)?;
+                let v = FixedStr::from_ascii(s)?;
                 group
-                    .new_dataset::<hdf5::types::VarLenAscii>()
+                    .new_dataset::<FixedStr>()
                     .create(key)?
                     .write_scalar(&v)?;
             } else {
-                let data: Vec<hdf5::types::VarLenAscii> = vs
+                let data: Vec<FixedStr> = vs
                     .iter()
-                    .map(|s| hdf5::types::VarLenAscii::from_ascii(s))
+                    .map(|s| FixedStr::from_ascii(s))
                     .collect::<std::result::Result<_, hdf5::types::StringError>>()?;
                 group
-                    .new_dataset::<hdf5::types::VarLenAscii>()
+                    .new_dataset::<FixedStr>()
                     .shape(dims.as_slice())
                     .create(key)?
                     .write_raw(&data)?;
